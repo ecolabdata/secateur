@@ -185,7 +185,7 @@ def temporary_visibility(root):
 
 
 def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -> bool:
-    """Make a layer and all its parent groups visible.
+    """Make a layer and all its parent groups visible using QGIS recursive API.
 
     Returns ``True`` if the layer was found in the tree and its visibility was
     changed, ``False`` otherwise.
@@ -193,12 +193,7 @@ def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -
     tree_layer = root.findLayer(layer.id())
     if not tree_layer:
         return False
-
-    parent = tree_layer.parent()
-    while parent and isinstance(parent, QgsLayerTreeGroup):
-        parent.setItemVisibilityChecked(True)
-        parent = parent.parent()
-
+    tree_layer.setItemVisibilityCheckedParentRecursive(True)
     tree_layer.setItemVisibilityChecked(True)
     return True
 
