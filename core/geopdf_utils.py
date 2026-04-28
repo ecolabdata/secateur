@@ -273,7 +273,7 @@ def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_em
 
     Parameters:
         layout (QgsLayout): The layout to modify.
-        map_item (QgsLayoutItemMap): The map item correctly configured (with extent and added to the layout) for filtering to work.
+        map_item (QgsLayoutItemMap): The map item correctly configured for filtering to work.
         noms_couches (list of str): Names of layers to include.
         x (float, optional): X position in millimeters. Defaults to 220.0.
         y (float, optional): Y position in millimeters. Defaults to 25.0.
@@ -289,7 +289,7 @@ def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_em
 
     # Filtrer les couches du projet
     all_layers = QgsProject.instance().mapLayers().values()
-    layers_to_add = [l for l in all_layers if l.name() in noms_couches]
+    layers_to_add = [L for L in all_layers if L.name() in noms_couches]
 
     # Styles de police
     group_style = QgsLegendStyle()

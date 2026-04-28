@@ -217,7 +217,7 @@ def export_results_to_pdf(
         exporter.exportToPdf(full_path, settings)
     except Exception as e:
         logger.error(f"GeoPDF export failed: {e}")
-        raise RuntimeError(f"GeoPDF export failed: {e}")
+        raise RuntimeError(f"GeoPDF export failed: {e}") from e
 
     # Restore all layers visibility after export
     try:

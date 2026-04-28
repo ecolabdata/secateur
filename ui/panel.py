@@ -88,7 +88,7 @@ class SecateurPanel(QDockWidget):
 
     def _load_layers(self):
         # Load vector layers for source selection
-        self._layers = [l for l in QgsProject.instance().mapLayers().values() if isinstance(l, QgsVectorLayer)]
+        self._layers = [L for L in QgsProject.instance().mapLayers().values() if isinstance(L, QgsVectorLayer)]
         # Load all layers (vector + raster) for basemap selection
         self._all_layers = list(QgsProject.instance().mapLayers().values())
 

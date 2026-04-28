@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 import processing  # type: ignore
 from qgis.core import QgsProcessingContext, QgsProcessingFeedback, QgsProject, QgsRasterLayer, QgsVectorLayer
 
@@ -100,10 +102,8 @@ def intersect_layer(source_layer, layers, progress_callback=None):
         )
         mem_layer = extract["OUTPUT"]
         mem_layer.setName(f"{layer.name()} - intersect")
-        try:
+        with suppress(Exception):
             mem_layer.setRenderer(layer.renderer().clone())
-        except Exception:
-            pass
 
         if mem_layer.featureCount() > 0:
             results.append(mem_layer)
