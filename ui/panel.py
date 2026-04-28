@@ -13,6 +13,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.export import export_results_to_csv, export_results_to_pdf
 from ..core.intersector import add_results_to_project, intersect_layer
+from ..core.logger import logger
 from ..core.utils import find_layers, get_or_create_group
 
 
@@ -108,12 +109,12 @@ class SecateurPanel(QDockWidget):
     def _on_basemap_selected(self, layer):
         if layer is None:
             self._selected_basemap = None
-            self.status_label.setText("Fond de carte non sélectionné.")
+            self._set_status("Fond de carte non sélectionné.", level="warning")
             self._set_export_enabled(csv=None, pdf=False)
             return
 
         self._selected_basemap = layer
-        self.status_label.setText(f"Fond de carte sélectionné : {layer.name()}")
+        self._set_status(f"Fond de carte sélectionné : {layer.name()}", level="info")
         self._set_export_enabled(csv=None, pdf=True)
 
     def _use_active_layer_or_feature(self):
@@ -122,14 +123,12 @@ class SecateurPanel(QDockWidget):
 
         # Check that the active layer exists
         if layer is None:
-            self.status_label.setText("Aucune couche active.")
-            self.run_button.setEnabled(False)
+            self._set_status("Aucune couche active.", level="error")
             return
 
         # Check that the layer is a vector layer
         if not isinstance(layer, QgsVectorLayer):
-            self.status_label.setText("La couche active n'est pas vectorielle.")
-            self.run_button.setEnabled(False)
+            self._set_status("La couche active n'est pas vectorielle.", level="error")
             return
 
         selected_features = layer.selectedFeatures()
@@ -179,23 +178,17 @@ class SecateurPanel(QDockWidget):
 
                 self._selected_layer = mem_layer
                 self._selected_feature = feature
-                self.status_label.setText(
-                    f"Objet ID {feature.id()} sélectionné dans {layer.name()} (couche temporaire prête)"
-                )
-            self.run_button.setEnabled(True)
 
         elif num_selected > 1:
             # Multiple features selected
             self._selected_layer = layer
             self._selected_feature = None
-            self.status_label.setText("Plusieurs objets sélectionnés !")
-            self.run_button.setEnabled(False)
+            self._set_status("Plusieurs objets sélectionnés !", level="warning")
         else:
             # No feature selected
             self._selected_layer = layer
             self._selected_feature = None
-            self.status_label.setText(f"Active layer: {layer.name()}")
-            self.run_button.setEnabled(True)
+            self._set_status(f"Couche sélectionnée : {layer.name()}", level="info")
 
     def _execute(self):
         """Orchestrate active geometry selection then run the intersection with error handling."""
@@ -208,7 +201,7 @@ class SecateurPanel(QDockWidget):
             self._on_run()
         except Exception as e:
             # Show a user‑friendly error and disable the run button to avoid repeated failures.
-            self.status_label.setText(f"Erreur d'exécution : {e}")
+            self._set_status(f"Erreur d'exécution : {e}", level="error")
 
     # ──────────────────────────────────────────────
     #  Process execution
@@ -223,7 +216,7 @@ class SecateurPanel(QDockWidget):
 
         layers = find_layers(exclude=self._selected_layer)
         if not layers:
-            self.status_label.setText("Aucune couche à comparer.")
+            self._set_status("Aucune couche à comparer.", level="error")
             return
 
         self._start_progress(len(layers))
@@ -286,7 +279,7 @@ class SecateurPanel(QDockWidget):
         """
         root = QgsProject.instance().layerTreeRoot()
         if not root.findGroup("Résultats secateur"):
-            self.status_label.setText("Aucun résultat Sécateur à exporter.")
+            self._set_status("Aucun résultat Sécateur à exporter.", level="error")
             self._set_export_enabled(csv=False, pdf=False)
             return False
         return True
@@ -302,12 +295,44 @@ class SecateurPanel(QDockWidget):
 
     def _update_progress(self, current, total, text):
         self.progress_bar.setValue(current)
-        self.status_label.setText(text)
+        self._set_status(text, level="info")
         self._force_repaint()
+
+    def _set_status(self, message: str, level: str = "info") -> None:
+        """Update the status label and log the message.
+
+        Parameters
+        ----------
+        message: str
+            Text to display to the user.
+        level: str, optional
+            One of "info", "warning", "error". Determines visual cue and log level.
+        """
+        # Update UI label
+        self.status_label.setText(message)
+        # Simple colour hint – adjust stylesheet per level
+        color_map = {
+            "info": "",
+            "warning": "color: orange;",
+            "error": "color: red;",
+        }
+        style = color_map.get(level, "")
+        if style:
+            self.status_label.setStyleSheet(style)
+        else:
+            # Reset any previous style
+            self.status_label.setStyleSheet("")
+        # Log appropriately
+        if level == "error":
+            logger.error(message)
+        elif level == "warning":
+            logger.warning(message)
+        else:
+            pass
 
     def _finish_progress(self, text):
         self.progress_bar.setVisible(False)
-        self.status_label.setText(text)
+        self._set_status(text, level="info")
 
     def _force_repaint(self):
         from qgis.PyQt.QtWidgets import QApplication
