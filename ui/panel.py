@@ -117,77 +117,75 @@ class SecateurPanel(QDockWidget):
         self._set_status(f"Fond de carte sélectionné : {layer.name()}", level="info")
         self._set_export_enabled(csv=None, pdf=True)
 
-    def _use_active_layer_or_feature(self):
-        """Retrieve the active vector layer or a single selected feature if exactly one is selected."""
+    def _prepare_source_layer(self) -> QgsVectorLayer | None:
+        """Return the active vector layer or None with a status message.
+
+        If the active item is not a vector layer (e.g., a group) or no active layer, the
+        selection is reset and a warning is shown.
+        """
+        self._selected_layer = None
+        self._selected_feature = None
         layer = self.iface.activeLayer()
-
-        # Check that the active layer exists
         if layer is None:
-            self._set_status("Aucune couche active.", level="error")
-            return
-
-        # Check that the layer is a vector layer
+            self._set_status("Aucune entité active.", level="warning")
+            return None
         if not isinstance(layer, QgsVectorLayer):
-            self._set_status("La couche active n'est pas vectorielle.", level="error")
+            self._set_status("Sélection réinitialisée (pas de couche vectorielle).", level="warning")
+            return None
+        return layer
+
+    def _create_memory_layer_from_feature(self, source_layer: QgsVectorLayer, feature: QgsFeature) -> QgsVectorLayer:
+        """Create (or replace) a memory layer containing *feature*.
+
+        The layer is added to the project (not inserted in any group).
+        """
+        layer_name = f"{source_layer.name()}_feature_{feature.id()}"
+        project = QgsProject.instance()
+        # Remove any existing memory layer with the same name
+        for lyr in project.mapLayersByName(layer_name):
+            project.removeMapLayer(lyr)
+        # Determine geometry type string for memory provider
+        geom_type = QgsWkbTypes.displayString(source_layer.wkbType())
+        mem_layer = QgsVectorLayer(
+            f"{geom_type}?crs={source_layer.crs().authid()}",
+            layer_name,
+            "memory",
+        )
+        # Copy fields
+        mem_layer.dataProvider().addAttributes(source_layer.fields())
+        mem_layer.updateFields()
+        # Clone the feature
+        new_feat = QgsFeature()
+        new_feat.setGeometry(feature.geometry())
+        new_feat.setAttributes(feature.attributes())
+        mem_layer.dataProvider().addFeature(new_feat)
+        mem_layer.updateExtents()
+        # Add to project without adding to the layer tree root
+        project.addMapLayer(mem_layer, False)
+        return mem_layer
+
+    def _use_active_layer_or_feature(self):
+        """Orchestrate selection of a layer or a single feature.
+
+        Uses ``_prepare_source_layer`` and ``_create_memory_layer_from_feature``
+        to keep the logic pure and side‑effects limited.
+        """
+        layer = self._prepare_source_layer()
+        if layer is None:
             return
-
-        selected_features = layer.selectedFeatures()
-        num_selected = len(selected_features)
-
-        if num_selected == 1:
-            # Exactly one feature selected: create a temporary memory layer with that feature
-            feature = selected_features[0]
-
-            # Crée ou réutilise une couche mémoire pour l'objet sélectionné
-            layer_name = f"{layer.name()}_feature_{feature.id()}"
-            project = QgsProject.instance()
-            # Supprimer toute couche mémoire existante portant le même nom afin d'éviter les résidus
-            existing_layers = project.mapLayersByName(layer_name)
-            if existing_layers:
-                # La couche existe : on la retire du projet avant d'en créer une nouvelle
-                for lyr in existing_layers:
-                    project.removeMapLayer(lyr)
-                # Aucun objet mémoire n’est conservé ; on continue avec la création ci‑dessous
-
-            # Crée une nouvelle couche mémoire avec le bon type géométrique et CRS
-            geom_type = QgsWkbTypes.displayString(layer.wkbType())
-            mem_layer = QgsVectorLayer(
-                f"{geom_type}?crs={layer.crs().authid()}",
-                layer_name,
-                "memory",
-            )
-
-            # Ajouter les champs de la couche source
-            mem_layer.dataProvider().addAttributes(layer.fields())
-            mem_layer.updateFields()
-
-            # Cloner la feature pour éviter tout problème de référence
-            new_feat = QgsFeature()
-            new_feat.setGeometry(feature.geometry())
-            new_feat.setAttributes(feature.attributes())
-
-            # Ajouter la feature à la couche mémoire
-            mem_layer.dataProvider().addFeature(new_feat)
-            mem_layer.updateExtents()
-
-            # Ajouter la couche au projet sans la placer à la racine
-            project.addMapLayer(mem_layer, False)
-
-            # S’assurer que le groupe "Objets créés" existe et y ajouter la couche
+        selected = layer.selectedFeatures()
+        if len(selected) == 1:
+            mem_layer = self._create_memory_layer_from_feature(layer, selected[0])
+            # Insert the memory layer into the "Objets créés" group as before
             group = get_created_objects_group()
-            # Insérer la couche dans le groupe (si déjà dans le groupe, l’insérer de nouveau n’a aucun effet)
             group.insertLayer(-1, mem_layer)
-
             self._selected_layer = mem_layer
-            self._selected_feature = feature
-
-        elif num_selected > 1:
-            # Multiple features selected
+            self._selected_feature = selected[0]
+        elif len(selected) > 1:
             self._selected_layer = layer
             self._selected_feature = None
             self._set_status("Plusieurs objets sélectionnés !", level="warning")
         else:
-            # No feature selected
             self._selected_layer = layer
             self._selected_feature = None
             self._set_status(f"Couche sélectionnée : {layer.name()}", level="info")
