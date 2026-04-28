@@ -178,7 +178,7 @@ def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -
     return True
 
 
-def _set_layer_visibility(nom_couche, nom_groupe, visible):
+def _set_layer_visibility(layer_name, group_name, visible):
     """Turn a layer on or off within a specified group.
 
     The group is enabled only when ``visible=True``.
@@ -186,21 +186,21 @@ def _set_layer_visibility(nom_couche, nom_groupe, visible):
     still contain other visible layers).
     """
     root = QgsProject.instance().layerTreeRoot()
-    groupe = root.findGroup(nom_groupe)
-    couche = None
-    if groupe is not None:
+    group = root.findGroup(group_name)
+    layer = None
+    if group is not None:
         if visible:
-            groupe.setItemVisibilityChecked(True)
-        for child in groupe.children():
-            if child.name() == nom_couche:
-                layers = QgsProject.instance().mapLayersByName(nom_couche)
+            group.setItemVisibilityChecked(True)
+        for child in group.children():
+            if child.name() == layer_name:
+                layers = QgsProject.instance().mapLayersByName(layer_name)
                 if layers:
-                    couche = layers[0]
-                    tree_layer = root.findLayer(couche.id())
+                    layer = layers[0]
+                    tree_layer = root.findLayer(layer.id())
                     if tree_layer:
                         tree_layer.setItemVisibilityChecked(visible)
                 break
-    return groupe, couche
+    return group, layer
 
 
 # ──────────────────────────────────────────────

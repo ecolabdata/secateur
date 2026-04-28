@@ -268,16 +268,16 @@ def add_map_credits(layout, x=250.0, y=150.0):
 # ──────────────────────────────────────────────
 
 
-def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_emprise=True):
+def _make_legend(layout, map_item, layer_names, x=220.0, y=25.0, filter_by_extent=True):
     """Construct a filtered legend for the listed layers.
 
     Parameters:
         layout (QgsLayout): The layout to modify.
         map_item (QgsLayoutItemMap): The map item correctly configured for filtering to work.
-        noms_couches (list of str): Names of layers to include.
+        layer_names (list of str): Names of layers to include.
         x (float, optional): X position in millimeters. Defaults to 220.0.
         y (float, optional): Y position in millimeters. Defaults to 25.0.
-        filtrer_par_emprise (bool, optional): Whether to filter by map extent. Defaults to True.
+        filter_by_extent (bool, optional): Whether to filter by map extent. Defaults to True.
 
     Returns:
         tuple: (legend, nb_items) where legend is the QgsLayoutItemLegend and nb_items is the count of legend items.
@@ -289,7 +289,7 @@ def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_em
 
     # Filtrer les couches du projet
     all_layers = QgsProject.instance().mapLayers().values()
-    layers_to_add = [L for L in all_layers if L.name() in noms_couches]
+    layers_to_add = [L for L in all_layers if L.name() in layer_names]
 
     # Styles de police
     group_style = QgsLegendStyle()
@@ -308,7 +308,7 @@ def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_em
 
     # Lien avec la carte et filtrage spatial
     legend.setLinkedMap(map_item)
-    if filtrer_par_emprise:
+    if filter_by_extent:
         legend.setLegendFilterByMapEnabled(True)
     legend.refresh()
 
@@ -334,12 +334,12 @@ def _make_legend(layout, map_item, noms_couches, x=220.0, y=25.0, filtrer_par_em
     return legend, nb_items
 
 
-def _export_separate_legend(dossier, noms_couches, nb_items, date_hm, extent):
+def _export_separate_legend(directory, layer_names, nb_items, date_hm, extent):
     """Export the legend to a separate PDF with page size adapting to the number of items (A4, A3, or A0).
 
     Parameters:
-        dossier (str): Output directory path.
-        noms_couches (list of str): Layer names to include in the legend.
+        directory (str): Output directory path.
+        layer_names (list of str): Layer names to include in the legend.
         nb_items (int): Number of legend items, used to choose page size.
         date_hm (str): Date and hour string for naming the file.
         extent (QgsRectangle): Extent for a temporary map item required for filtering.
@@ -391,7 +391,7 @@ def _export_separate_legend(dossier, noms_couches, nb_items, date_hm, extent):
     map_item.attemptMove(QgsLayoutPoint(-100, -100, QgsUnitTypes.LayoutMillimeters))
 
     # Legend
-    legend, _ = _make_legend(layout, map_item, noms_couches, x=15, y=30, filtrer_par_emprise=True)
+    legend, _ = _make_legend(layout, map_item, layer_names, x=15, y=30, filter_by_extent=True)
     legend.setColumnCount(3)
     legend.setColumnSpace(5)
 
@@ -406,11 +406,11 @@ def _export_separate_legend(dossier, noms_couches, nb_items, date_hm, extent):
     settings = QgsLayoutExporter.PdfExportSettings()
     settings.dpi = 300
 
-    nom_fichier = f"Legende_GeoPDF_{date_hm}.pdf"
-    chemin = os.path.join(dossier, nom_fichier)
-    exporter.exportToPdf(chemin, settings)
+    file_name = f"Legende_GeoPDF_{date_hm}.pdf"
+    path = os.path.join(directory, file_name)
+    exporter.exportToPdf(path, settings)
 
     # Clean only this layout
     manager.removeLayout(layout)
 
-    return chemin
+    return path
