@@ -3,7 +3,7 @@ from contextlib import suppress
 import processing  # type: ignore
 from qgis.core import QgsProcessingContext, QgsProcessingFeedback, QgsProject, QgsRasterLayer, QgsVectorLayer
 
-from .utils import _get_group_by_path
+from .utils import get_or_create_group
 
 # ──────────────────────────────────────────────
 #  LAYERS
@@ -124,15 +124,7 @@ def add_results_to_project(result_layers: list[QgsVectorLayer]):
     if project is None:
         return
 
-    root = project.layerTreeRoot()
-
-    # Use the shared _get_group_by_path helper to locate/create the results group
-    group = _get_group_by_path(["Résultats secateur"])
-    if group:
-        group.removeAllChildren()
-    else:
-        # If the group does not exist, create it at the top level
-        group = root.insertGroup(0, "Résultats secateur")
+    group = get_or_create_group(["Résultats secateur"], clear=True)
 
     for layer in result_layers:
         project.addMapLayer(layer, False)

@@ -20,24 +20,46 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QFile, QTime  # noqa: UP035
 # ──────────────────────────────────────────────
 
 
-def _get_group_by_path(path):
-    """Return the QgsLayerTreeGroup matching the hierarchical *path*.
-    *path* is a list of group names, e.g. ["Paris", "Sections"].
-    Returns ``None`` if any component is missing.
+def get_or_create_group(path: list[str], clear: bool = False):
+    """Return or create a QgsLayerTreeGroup.
+
+    *path* – list of group names representing the hierarchy.
+    If the group does not exist, it is created (including any missing parent
+    groups). When *clear* is True, all children of the group are removed.
     """
     project = QgsProject.instance()
     if not project:
         return None
 
+    # Try to locate the group via the existing helper (which may have been removed,
+    # so we perform a manual traversal here).
     node = project.layerTreeRoot()
     for name in path:
         if not node:
             return None
         node = next(
-            (child for child in node.children() if isinstance(child, QgsLayerTreeGroup) and child.name() == name),
-            None,
+            (child for child in node.children() if isinstance(child, QgsLayerTreeGroup) and child.name() == name), None
         )
-    return node
+        if node is None:
+            break
+    group = node
+
+    if group is None:
+        root = project.layerTreeRoot()
+        if len(path) > 1:
+            # Ensure parent hierarchy exists recursively
+            parent_path = path[:-1]
+            parent_group = get_or_create_group(parent_path, clear=False)
+            if parent_group is None:
+                parent_group = root
+            group = parent_group.insertGroup(0, path[-1])
+        else:
+            group = root.insertGroup(0, path[0])
+
+    if clear and group is not None:
+        group.removeAllChildren()
+
+    return group
 
 
 def find_layers(exclude: QgsVectorLayer | None = None) -> list[QgsVectorLayer]:

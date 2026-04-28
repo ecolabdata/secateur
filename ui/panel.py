@@ -12,8 +12,8 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.export import export_results_to_csv, export_results_to_pdf
-from ..core.intersector import _get_group_by_path, add_results_to_project, intersect_layer
-from ..core.utils import find_layers
+from ..core.intersector import add_results_to_project, intersect_layer
+from ..core.utils import find_layers, get_or_create_group
 
 
 class SecateurPanel(QDockWidget):
@@ -160,10 +160,7 @@ class SecateurPanel(QDockWidget):
                 project.addMapLayer(mem_layer, False)
 
                 # S’assurer que le groupe "Objets créés" existe et y ajouter la couche
-                group = _get_group_by_path(["Objets créés"])
-                if group is None:
-                    root = project.layerTreeRoot()
-                    group = root.addGroup("Objets créés")
+                group = get_or_create_group(["Objets créés"])
                 # Insérer la couche dans le groupe (si déjà dans le groupe, l’insérer de nouveau n’a aucun effet)
                 group.insertLayer(-1, mem_layer)
 
@@ -208,15 +205,10 @@ class SecateurPanel(QDockWidget):
         if self._selected_layer is None:
             return
 
-        project = QgsProject.instance()
-        root = project.layerTreeRoot()
-        group = root.findGroup("Résultats secateur")
-        if group:
-            group.removeAllChildren()
-            root.removeChildNode(group)
+        # Ensure the results group exists and is empty
+        group = get_or_create_group(["Résultats secateur"], clear=True)
 
         layers = find_layers(exclude=self._selected_layer)
-
         if not layers:
             self.status_label.setText("Aucune couche à comparer.")
             return
@@ -240,11 +232,7 @@ class SecateurPanel(QDockWidget):
             # PDF export requires basemap selection; keep disabled until basemap chosen
             self.export_pdf_button.setEnabled(False)
             # Clean up the temporary "Objets créés" group if it exists
-            objs_group = _get_group_by_path(["Objets créés"])
-            if objs_group:
-                objs_group.removeAllChildren()
-                QgsProject.instance().layerTreeRoot().removeChildNode(objs_group)
-
+            objs_group = get_or_create_group(["Objets créés"], clear=True)
             layer_count = max(len(results) - 1, 0)  # on enlève la couche source
             self._finish_progress(f"{layer_count} couches trouvées.")
         else:
