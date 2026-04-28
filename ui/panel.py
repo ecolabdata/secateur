@@ -132,6 +132,11 @@ class SecateurPanel(QDockWidget):
         if not isinstance(layer, QgsVectorLayer):
             self._set_status("Sélection réinitialisée (pas de couche vectorielle).", level="warning")
             return None
+        # Reject layers that belong to the "Résultats secateur" group
+        results_group = get_results_group()
+        if results_group.findLayer(layer.id()) is not None:
+            self._set_status("La sélection appartient au groupe Résultats.", level="warning")
+            return None
         return layer
 
     def _create_memory_layer_from_feature(self, source_layer: QgsVectorLayer, feature: QgsFeature) -> QgsVectorLayer:
