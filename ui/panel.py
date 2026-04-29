@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
+from ..core.constants import RESULT_GROUP_NAME
 from ..core.export import export_results_to_csv, export_results_to_pdf
 from ..core.intersector import add_results_to_project, intersect_layer
 from ..core.logger import logger
@@ -142,10 +142,10 @@ class SecateurPanel(QDockWidget):
         if not isinstance(layer, QgsVectorLayer):
             self._set_status("Sélection réinitialisée (pas de couche vectorielle).", level="warning")
             return None
-        # Reject layers that belong to the "Résultats secateur" group
+        # Reject layers that belong to the "RESULT_GROUP_NAME" group
         results_group = get_results_group()
         if results_group.findLayer(layer.id()) is not None:
-            self._set_status("La sélection appartient au groupe Résultats.", level="warning")
+            self._set_status(f"La sélection appartient au groupe {RESULT_GROUP_NAME}.", level="warning")
             return None
         return layer
 
@@ -302,15 +302,14 @@ class SecateurPanel(QDockWidget):
                 self._feedback = None
 
     def _verify_results_group(self):
-        """Check if the 'Résultats secateur' group exists.
+        """Check if the 'RESULT_GROUP_NAME' group exists.
 
         If missing, update UI to show an error and disable export buttons.
         Returns True when the group is present, False otherwise.
         """
-        # Use the DRY helper to locate the results group
         group = get_results_group()
         if not group:
-            self._set_status("Aucun résultat Sécateur à exporter.", level="error")
+            self._set_status("Aucun résultat à exporter.", level="error")
             self._set_export_enabled(csv=False, pdf=False)
             return False
         return True
