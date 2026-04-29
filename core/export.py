@@ -1,6 +1,6 @@
 import csv
 import os
-from datetime import datetime
+
 
 from qgis.core import (
     QgsProcessingFeedback,
@@ -38,6 +38,7 @@ from .utils import (
     set_layer_and_parents_visible,
     set_layer_opacity,
     temporary_visibility,
+    timestamp_str,
 )
 
 # ============================================================
@@ -104,12 +105,12 @@ def export_results_to_pdf(
     # Resolve output path – create a dated filename if a directory is supplied
     try:
         if os.path.isdir(output_path):
-            date_hm = datetime.now().strftime("%Y_%m_%d_%Hh_%Mmin")
+            date_hm = timestamp_str()
             filename = f"Rapport_cartographique_d_interrogation_ADS_des_parcelles_{date_hm}.pdf"
             full_path = os.path.join(output_path, filename)
         else:
             full_path = output_path
-            date_hm = datetime.now().strftime("%Y_%m_%d_%Hh_%Mmin")
+            date_hm = timestamp_str()
     except Exception as e:
         logger.error(f"Failed to resolve output path '{output_path}': {e}")
         raise

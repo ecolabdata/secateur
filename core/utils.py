@@ -1,4 +1,12 @@
 import os
+from datetime import datetime
+
+def timestamp_str() -> str:
+    """Return current datetime formatted as "YYYY_MM_DD_HHh_MMin".
+    Centralises the timestamp format used for exported files.
+    """
+    return datetime.now().strftime("%Y_%m_%d_%Hh_%Mmin")
+
 import re
 from contextlib import contextmanager
 
@@ -19,6 +27,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QFile, QTime  # noqa: UP035
 # ──────────────────────────────────────────────
 #  Layer utilities
 # ──────────────────────────────────────────────
+
 
 
 def get_or_create_group(path: list[str], clear: bool = False):
@@ -66,10 +75,6 @@ def get_or_create_group(path: list[str], clear: bool = False):
 # ---------------------------------------------------------------------------
 from .constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 
-
-def _get_root():
-    """Return the layer tree root of the current QGIS project."""
-    return QgsProject.instance().layerTreeRoot()
 
 
 def get_results_group(clear: bool = False):
@@ -198,29 +203,6 @@ def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -
     return True
 
 
-def _set_layer_visibility(layer_name, group_name, visible):
-    """Turn a layer on or off within a specified group.
-
-    The group is enabled only when ``visible=True``.
-    If ``visible=False``, only the layer is turned off (the group may
-    still contain other visible layers).
-    """
-    root = QgsProject.instance().layerTreeRoot()
-    group = root.findGroup(group_name)
-    layer = None
-    if group is not None:
-        if visible:
-            group.setItemVisibilityChecked(True)
-        for child in group.children():
-            if child.name() == layer_name:
-                layers = QgsProject.instance().mapLayersByName(layer_name)
-                if layers:
-                    layer = layers[0]
-                    tree_layer = root.findLayer(layer.id())
-                    if tree_layer:
-                        tree_layer.setItemVisibilityChecked(visible)
-                break
-    return group, layer
 
 
 # ──────────────────────────────────────────────
