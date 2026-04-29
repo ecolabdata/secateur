@@ -13,7 +13,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.constants import RESULT_GROUP_NAME
+from ..core.constants import RESULT_GROUP_NAME, CREATED_OBJECTS_GROUP_NAME
 from ..core.export import export_results_to_csv, export_results_to_pdf
 from ..core.intersector import add_results_to_project, intersect_layer
 from ..core.logger import logger
@@ -197,10 +197,10 @@ class SecateurPanel(QDockWidget):
         selected = layer.selectedFeatures()
         if len(selected) == 1:
             mem_layer = self._create_memory_layer_from_feature(layer, selected[0])
-            # Insert the memory layer into the "Objets créés" group as before
+            # Insert the memory layer into the "CREATED_OBJECTS_GROUP_NAME" group as before
             group = get_created_objects_group()
             if group is None:
-                self._set_status("Impossible d'ajouter la couche : groupe 'Objets créés' introuvable.", level="error")
+                self._set_status(f"Impossible d'ajouter la couche : groupe '{CREATED_OBJECTS_GROUP_NAME}' introuvable.", level="error")
             else:
                 group.insertLayer(-1, mem_layer)
             self._selected_layer = mem_layer
@@ -266,13 +266,13 @@ class SecateurPanel(QDockWidget):
             self._result_layers = results
             # PDF export requires basemap selection; keep disabled until basemap chosen
             self._set_export_enabled(csv=True, pdf=False)
-            # Clean up the temporary "Objets créés" group if it exists
+            # Clean up the temporary "CREATED_OBJECTS_GROUP_NAME" group if it exists
             objs_group = get_created_objects_group(clear=True)
             if objs_group is None:
-                self._set_status("Groupe 'Objets créés' introuvable lors du nettoyage.", level="warning")
+                self._set_status(f"Groupe '{CREATED_OBJECTS_GROUP_NAME}' introuvable lors du nettoyage.", level="warning")
             else:
                 QgsProject.instance().layerTreeRoot().removeChildNode(objs_group)
-            layer_count = max(len(results) - 1, 0)  # on enlève la couche source
+            layer_count = max(len(results) - 1, 0)  # withdraw selected_layer from count
             self._finish_progress(f"{layer_count} couches trouvées.")
         else:
             self._result_layers = []
