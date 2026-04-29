@@ -123,7 +123,12 @@ def add_results_to_project(result_layers: list[QgsVectorLayer]):
         return
 
     group = get_results_group(clear=True)
-
+    if group is None:
+        # If the results group cannot be created, abort adding layers to it.
+        # Layers are still added to the project (visible in the layer list).
+        for layer in result_layers:
+            project.addMapLayer(layer, False)
+        return
     for layer in result_layers:
         project.addMapLayer(layer, False)
         group.addLayer(layer)  # type: ignore

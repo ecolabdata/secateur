@@ -56,7 +56,6 @@ def export_results_to_csv(
     progress.update(current, total, name) is called before each layer if a progress object is provided.
     """
     os.makedirs(output_dir, exist_ok=True)
-    total = len(result_layers)
 
     written = []
 

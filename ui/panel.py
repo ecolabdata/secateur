@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from qgis.core import QgsFeature, QgsMapLayerProxyModel, QgsProcessingFeedback, QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapLayerComboBox
 from qgis.PyQt.QtWidgets import (
@@ -145,6 +147,9 @@ class SecateurPanel(QDockWidget):
             return None
         # Reject layers that belong to the "RESULT_GROUP_NAME" group
         results_group = get_results_group()
+        if results_group is None:
+            self._set_status("Impossible d'accéder au groupe 'Résultats secateur'.", level="error")
+            return None
         if results_group.findLayer(layer.id()) is not None:
             self._set_status(f"La sélection appartient au groupe {RESULT_GROUP_NAME}.", level="warning")
             return None
@@ -194,7 +199,10 @@ class SecateurPanel(QDockWidget):
             mem_layer = self._create_memory_layer_from_feature(layer, selected[0])
             # Insert the memory layer into the "Objets créés" group as before
             group = get_created_objects_group()
-            group.insertLayer(-1, mem_layer)
+            if group is None:
+                self._set_status("Impossible d'ajouter la couche : groupe 'Objets créés' introuvable.", level="error")
+            else:
+                group.insertLayer(-1, mem_layer)
             self._selected_layer = mem_layer
             self._selected_feature = selected[0]
         elif len(selected) > 1:
@@ -234,6 +242,10 @@ class SecateurPanel(QDockWidget):
 
         # Ensure the results group exists and is empty
         group = get_results_group(clear=True)
+        if group is None:
+            self._set_status("Impossible d'accéder au groupe 'Résultats secateur'.", level="error")
+            self.run_button.setEnabled(True)
+            return
 
         layers = find_layers(exclude=self._selected_layer)
         if not layers:
@@ -256,7 +268,9 @@ class SecateurPanel(QDockWidget):
             self._set_export_enabled(csv=True, pdf=False)
             # Clean up the temporary "Objets créés" group if it exists
             objs_group = get_created_objects_group(clear=True)
-            if objs_group:
+            if objs_group is None:
+                self._set_status("Groupe 'Objets créés' introuvable lors du nettoyage.", level="warning")
+            else:
                 QgsProject.instance().layerTreeRoot().removeChildNode(objs_group)
             layer_count = max(len(results) - 1, 0)  # on enlève la couche source
             self._finish_progress(f"{layer_count} couches trouvées.")
@@ -332,10 +346,8 @@ class SecateurPanel(QDockWidget):
     def _cancel_feedback(self):
         """Cancel the current processing feedback, if any."""
         if getattr(self, "_feedback", None):
-            try:
+            with suppress(Exception):
                 self._feedback.cancel()  # type: ignore
-            except Exception:
-                pass
 
     def _set_status(self, message: str, level: str = "info") -> None:
         """Update the status label and log the message.
