@@ -77,6 +77,12 @@ class SecateurPanel(QDockWidget):
         self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
         layout.addWidget(self.basemap_combo)
 
+        raster_layers = self.service.get_available_raster_layers()
+        if raster_layers:
+            default_basemap = raster_layers[0]
+            self.basemap_combo.setLayer(default_basemap)
+            self._selected_basemap = default_basemap
+
         export_row = QHBoxLayout()
 
         self.export_csv_button = QPushButton("Exporter CSV")
@@ -126,12 +132,10 @@ class SecateurPanel(QDockWidget):
         if layer is None:
             self._selected_basemap = None
             self._set_status("Fond de carte non sélectionné.", "warning")
-            self._set_export_enabled(pdf=False)
             return
 
         self._selected_basemap = layer
         self._set_status(f"Fond de carte sélectionné : {layer.name()}", "info")
-        self._set_export_enabled(pdf=True)
 
     # ──────────────────────────────────────────────
     #  Execution (rewired)
@@ -151,6 +155,9 @@ class SecateurPanel(QDockWidget):
 
         try:
             self._run_process()
+            self._set_export_enabled(pdf=True)
+            if self._selected_basemap is None :
+                self._set_status("Fond de carte non sélectionné.", "warning")
         except Exception as e:
             self._set_status(f"Erreur d'exécution : {e}", "error")
         finally:
