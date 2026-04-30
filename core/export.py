@@ -104,7 +104,7 @@ def export_results_to_pdf(
     try:
         if os.path.isdir(output_path):
             date_hm = timestamp_str()
-            filename = f"Rapport_cartographique_d_interrogation_ADS_des_parcelles_{date_hm}.pdf"
+            filename = f"Rapport_cartographique_{date_hm}.pdf"
             full_path = os.path.join(output_path, filename)
         else:
             full_path = output_path

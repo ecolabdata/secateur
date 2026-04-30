@@ -205,12 +205,13 @@ class SecateurPanel(QDockWidget):
             self.run_button.setEnabled(False)
 
             try:
-                export_results_to_pdf(
+                full_path = export_results_to_pdf(
                     self.state.result_layers,
                     folder,
                     feedback=feedback,
                     basemap_layer=self._selected_basemap,
                 )
+                self._set_status(f"GeoPDF exporté : {full_path}", "info")
             finally:
                 self.run_button.setEnabled(True)
                 self._feedback = None
