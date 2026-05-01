@@ -1,8 +1,10 @@
 import os
 import shutil
-from PyQt5.QtCore import Qt
+
 from qgis.core import QgsApplication
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QImage
+
 
 class ImageManager:
     MAX_WIDTH = 2000
@@ -22,12 +24,10 @@ class ImageManager:
 
         ratio = img.width() / img.height()
         if abs(ratio - self.TARGET_RATIO) > self.RATIO_TOLERANCE:
-            raise ValueError(
-                f"Ratio image incorrect (attendu ~{self.TARGET_RATIO:.2f}, obtenu {ratio:.2f})"
-            )
+            raise ValueError(f"Ratio image incorrect (attendu ~{self.TARGET_RATIO:.2f}, obtenu {ratio:.2f})")
 
         return img
-    
+
     def normalize_image(self, path: str, output_path: str) -> str:
         img = self.validate_image(path)
 
@@ -56,7 +56,7 @@ class ImageManager:
         shutil.copyfile(path, dest_path)
 
         return dest_path
-    
+
     def safe_import_logo(self, path: str) -> str:
         self.validate_image(path)
         return self.copy_to_local(path)

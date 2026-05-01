@@ -1,6 +1,8 @@
 import os
 
 from qgis.core import QgsSettings
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -106,6 +108,14 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(row)
 
+        self.logo_display = QLabel()
+        self.logo_display.setFixedSize(120, 120)
+        self.logo_display.setStyleSheet("border: 1px solid #ccc;")
+        self.logo_display.setScaledContents(True)
+        self.logo_display.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(self.logo_display)
+
         # Buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -114,6 +124,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(buttons)
 
         self._selected_logo = None
+        self._set_logo_display(self.settings.logo_path)
 
     def _select_logo(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -131,6 +142,7 @@ class SettingsDialog(QDialog):
             self._selected_logo = file_path
             self.logo_label.setStyleSheet("")
             self.logo_label.setText(self._display_logo_name(file_path))
+            self._set_logo_display(file_path)
 
         except Exception as err:
             self.logo_label.setStyleSheet("color: red;")
@@ -145,3 +157,18 @@ class SettingsDialog(QDialog):
 
     def _display_logo_name(self, path):
         return path.split("/")[-1] if path else "Aucun logo"
+
+    def _set_logo_display(self, path: str):
+        pixmap = QPixmap(path)
+
+        if pixmap.isNull():
+            self.logo_display.clear()
+            return
+
+        scaled = pixmap.scaled(
+            self.logo_display.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+
+        self.logo_display.setPixmap(scaled)
