@@ -207,9 +207,8 @@ def export_results_to_pdf(
             legend = None
             nb_items = 0
 
-        # If too many items, export legend separately and remove from main layout
-        seuil_legende_interne = 12
-        if nb_items >= seuil_legende_interne and legend is not None:
+        # Export legend separately and remove from main layout
+        if legend is not None:
             layout.removeLayoutItem(legend)
             try:
                 _export_separate_legend(
