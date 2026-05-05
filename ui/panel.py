@@ -6,6 +6,7 @@ from qgis.gui import QgsMapLayerComboBox
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -75,18 +76,21 @@ class SecateurPanel(QDockWidget):
         self.run_button.clicked.connect(self._execute)
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
-        
-        self.export_csv_button = QPushButton("Export CSV")
-        self.export_csv_button.setEnabled(False)
-        self.export_csv_button.clicked.connect(self._on_export_csv)
-        layout.addWidget(self.export_csv_button)
 
-        layout.addWidget(QLabel("Choisir un fond de carte :"))
+        geopdf_frame = QFrame()
+        geopdf_frame.setFrameShape(QFrame.StyledPanel)
+        geopdf_layout = QVBoxLayout(geopdf_frame)
+
+        geopdf_title_label = QLabel("Export GeoPDF")
+        geopdf_title_label.setStyleSheet("font-weight: bold;")
+        geopdf_layout.addWidget(geopdf_title_label)
+
+        geopdf_layout.addWidget(QLabel("Choisir un fond de carte :"))
 
         self.basemap_combo = QgsMapLayerComboBox()
         self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
         self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
-        layout.addWidget(self.basemap_combo)
+        geopdf_layout.addWidget(self.basemap_combo)
 
         raster_layers = self.service.get_available_raster_layers()
         if raster_layers:
@@ -94,16 +98,15 @@ class SecateurPanel(QDockWidget):
             self.basemap_combo.setLayer(default_basemap)
             self._selected_basemap = default_basemap
 
-        layout.addWidget(QLabel("Modifier le titre :"))
+        geopdf_layout.addWidget(QLabel("Modifier le titre :"))
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("Titre du GeoPDF")
         self.title_input.setText(self.settings.pdf_title)
-        layout.addWidget(self.title_input)
+        geopdf_layout.addWidget(self.title_input)
 
         geopdf_row = QHBoxLayout()
 
         self.export_pdf_button = QPushButton("Exporter le GeoPDF")
-        self.export_pdf_button.setEnabled(False)
         self.export_pdf_button.clicked.connect(self._on_export_pdf)
         geopdf_row.addWidget(self.export_pdf_button)
 
@@ -111,7 +114,28 @@ class SecateurPanel(QDockWidget):
         self.edit_settings_button.clicked.connect(self._open_settings_dialog)
         geopdf_row.addWidget(self.edit_settings_button)
 
-        layout.addLayout(geopdf_row)
+        geopdf_layout.addLayout(geopdf_row)
+
+        layout.addWidget(geopdf_frame)
+        geopdf_frame.setEnabled(False)
+
+        # ~~~~~~~~~~~~~~~ csv frame ~~~~~~~~~~~~~~~#
+        csv_frame = QFrame()
+        csv_frame.setFrameShape(QFrame.StyledPanel)
+        csv_layout = QVBoxLayout(csv_frame)
+
+        csv_title_label = QLabel("Export CSV")
+        csv_title_label.setStyleSheet("font-weight: bold;")
+        csv_layout.addWidget(csv_title_label)
+
+        csv_layout.addWidget(QLabel("Exporter les tables de vérités :"))
+
+        self.export_csv_button = QPushButton("Export CSV")
+        self.export_csv_button.clicked.connect(self._on_export_csv)
+        csv_layout.addWidget(self.export_csv_button)
+
+        layout.addWidget(csv_frame)
+        csv_frame.setEnabled(False)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
@@ -124,12 +148,16 @@ class SecateurPanel(QDockWidget):
         layout.addStretch()
         self.setWidget(container)
 
-    # UI helpers (unchanged)
-    def _set_export_enabled(self, csv=None, pdf=None):
-        if csv is not None:
-            self.export_csv_button.setEnabled(csv)
-        if pdf is not None:
-            self.export_pdf_button.setEnabled(pdf)
+        self.csv_frame = csv_frame
+        self.geopdf_frame = geopdf_frame
+
+        self._update_ui_state()
+
+    def _update_ui_state(self):
+        has_results = bool(self.state.result_layers)
+
+        self.csv_frame.setEnabled(has_results)
+        self.geopdf_frame.setEnabled(has_results)
 
     def _set_status(self, message, level="info"):
         if message:
@@ -202,7 +230,6 @@ class SecateurPanel(QDockWidget):
 
         try:
             result = self._run_process()
-            self._set_export_enabled(pdf=True)
             if result.level != "error" and self._selected_basemap is None:
                 self._set_status("Fond de carte non sélectionné.", "warning")
         except Exception as e:
@@ -214,8 +241,6 @@ class SecateurPanel(QDockWidget):
     def _run_process(self):
         assert self.state.selected_layer is not None
 
-        self.run_button.setEnabled(False)
-
         feedback = self._create_feedback()
 
         result = self.service.run(self.state.selected_layer, feedback)
@@ -224,10 +249,7 @@ class SecateurPanel(QDockWidget):
 
         self._set_status(result.message, result.level)
 
-        if result.result_layers:
-            self._set_export_enabled(csv=True, pdf=False)
-        else:
-            self._set_export_enabled(csv=False, pdf=False)
+        self._update_ui_state()
 
         self._finish_progress(result.message)
         return result
@@ -241,7 +263,7 @@ class SecateurPanel(QDockWidget):
             written = export_results_to_csv(self.state.result_layers, folder)
             self._set_status(f"{len(written)} CSV exporté(s).", "info")
         except Exception as err:
-            self._set_status({err}, "error")  #!!! à compléter
+            self._set_status(str(err), "error")  #!!! à compléter
 
     def _on_export_pdf(self):
         if not self._verify_results_group():
@@ -251,8 +273,6 @@ class SecateurPanel(QDockWidget):
         if folder:
             feedback = self._create_feedback()
             self._feedback = feedback
-
-            self.run_button.setEnabled(False)
 
             title = self.title_input.text().strip()
             if not title:
@@ -279,7 +299,7 @@ class SecateurPanel(QDockWidget):
         group = get_results_group()
         if not group:
             self._set_status("Aucun résultat à exporter.", "error")
-            self._set_export_enabled(csv=False, pdf=False)
+            self._update_ui_state()
             return False
         return True
 
