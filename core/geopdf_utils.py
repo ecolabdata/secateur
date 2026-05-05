@@ -246,7 +246,7 @@ def add_copyright(layout, x=250.0, y=200.0, author="DDT21", font_size=10):
         QgsLayoutItemLabel: The created label item.
     """
     date_str = datetime.strftime(datetime.now(), "%d/%m/%Y")
-    texte = f"© {author} le {date_str}"
+    texte = f"{author} le {date_str}"
     label = ajouter_label(layout, texte, x, y, font_name="Arial", font_size=font_size)
     label.attemptResize(QgsLayoutSize(40, 20, QgsUnitTypes.LayoutMillimeters))
     return label

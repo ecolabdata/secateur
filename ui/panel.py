@@ -75,13 +75,13 @@ class SecateurPanel(QDockWidget):
         self.run_button.clicked.connect(self._execute)
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
-
-        self.export_csv_button = QPushButton("Exporter CSV")
+        
+        self.export_csv_button = QPushButton("Export CSV")
         self.export_csv_button.setEnabled(False)
         self.export_csv_button.clicked.connect(self._on_export_csv)
         layout.addWidget(self.export_csv_button)
 
-        layout.addWidget(QLabel("Fond de carte :"))
+        layout.addWidget(QLabel("Choisir un fond de carte :"))
 
         self.basemap_combo = QgsMapLayerComboBox()
         self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
@@ -94,15 +94,15 @@ class SecateurPanel(QDockWidget):
             self.basemap_combo.setLayer(default_basemap)
             self._selected_basemap = default_basemap
 
-        layout.addWidget(QLabel("Titre du GeoPDF :"))
+        layout.addWidget(QLabel("Modifier le titre :"))
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Titre du rapport")
+        self.title_input.setPlaceholderText("Titre du GeoPDF")
         self.title_input.setText(self.settings.pdf_title)
         layout.addWidget(self.title_input)
 
         geopdf_row = QHBoxLayout()
 
-        self.export_pdf_button = QPushButton("Exporter PDF")
+        self.export_pdf_button = QPushButton("Exporter le GeoPDF")
         self.export_pdf_button.setEnabled(False)
         self.export_pdf_button.clicked.connect(self._on_export_pdf)
         geopdf_row.addWidget(self.export_pdf_button)
