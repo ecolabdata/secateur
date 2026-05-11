@@ -274,121 +274,191 @@ def add_map_credits(layout, text: str, x=250.0, y=150.0):
 # ──────────────────────────────────────────────
 
 
-def _make_legend(layout, map_item, layer_names, x=220.0, y=25.0, filter_by_extent=True):
-    """Construct a filtered legend for the listed layers.
-
-    Parameters:
-        layout (QgsLayout): The layout to modify.
-        map_item (QgsLayoutItemMap): The map item correctly configured for filtering to work.
-        layer_names (list of str): Names of layers to include.
-        x (float, optional): X position in millimeters. Defaults to 220.0.
-        y (float, optional): Y position in millimeters. Defaults to 25.0.
-        filter_by_extent (bool, optional): Whether to filter by map extent. Defaults to True.
-
-    Returns:
-        legend is the QgsLayoutItemLegend.
-    """
+def _make_legend(
+    layout,
+    map_item,
+    layer_names,
+    x=15.0,
+    y=30.0,
+    columns=2,
+    filter_by_extent=True,
+):
     legend = QgsLayoutItemLegend(layout)
-    legend.setTitle("Legende")
-    legend.setFrameEnabled(True)
-    legend.setFrameStrokeWidth(QgsLayoutMeasurement(0.4))
 
-    # Styles de police
-    group_style = QgsLegendStyle()
-    # Updated to use setTextFormat to avoid deprecation warning
-    group_text_format = QgsTextFormat()
-    group_text_format.setFont(QFont("Arial", 7, 1, False))
-    group_style.setTextFormat(group_text_format)
-    legend.setStyle(QgsLegendStyle.Group, group_style)
-
-    label_style = QgsLegendStyle()
-    # Updated to use setTextFormat to avoid deprecation warning
-    label_text_format = QgsTextFormat()
-    label_text_format.setFont(QFont("Arial", 6, 1, False))
-    label_style.setTextFormat(label_text_format)
-    legend.setStyle(QgsLegendStyle.SymbolLabel, label_style)
-
-    # Lien avec la carte et filtrage spatial
+    legend.setTitle("Légende")
     legend.setLinkedMap(map_item)
+
     if filter_by_extent:
         legend.setLegendFilterByMapEnabled(True)
 
-    # Refresh the legend to ensure it's properly initialized
-    legend.refresh()
+    legend.setFrameEnabled(True)
+    legend.setFrameStrokeWidth(QgsLayoutMeasurement(0.4))
+
+    legend.setColumnCount(columns)
+    legend.setColumnSpace(5)
+
+    group_style = QgsLegendStyle()
+    group_text = QgsTextFormat()
+    group_text.setFont(QFont("Arial", 7, 1, False))
+    group_style.setTextFormat(group_text)
+    legend.setStyle(QgsLegendStyle.Group, group_style)
+
+    label_style = QgsLegendStyle()
+    label_text = QgsTextFormat()
+    label_text.setFont(QFont("Arial", 6))
+    label_style.setTextFormat(label_text)
+    legend.setStyle(QgsLegendStyle.SymbolLabel, label_style)
 
     layout.addLayoutItem(legend)
-    legend.setColumnSpace(35)
+
     legend.attemptMove(QgsLayoutPoint(x, y, QgsUnitTypes.LayoutMillimeters))
+
+    legend.refresh()
 
     return legend
 
 
-def _export_separate_legend(directory, layer_names, date_hm, extent, logo_path):
-    """Export the legend to a separate PDF with page size adapting to the number of items (A4, A3, or A0).
+def _chunk_layers(layer_names, per_page=25):
+    for i in range(0, len(layer_names), per_page):
+        yield layer_names[i : i + per_page]
 
-    Parameters:
-        directory (str): Output directory path.
-        layer_names (list of str): Layer names to include in the legend.
-        date_hm (str): Date and hour string for naming the file.
-        extent (QgsRectangle): Extent for a temporary map item required for filtering.
-        logo_path
 
-    Returns:
-        str: Full path to the exported PDF file.
-    """
-    project = QgsProject.instance()
-    manager = project.layoutManager()
-
-    layout_name = f"Legende_GeoPDF_{date_hm}"
-    layout = create_layout(project, manager, layout_name)
-
-    # Choose page size from number of items
-    page_format = "A4"
-    orientation = QgsLayoutItemPage.Orientation.Landscape
-    x_logo, y_logo = 260, 160
-    x_date, y_date = 250, 20
-
-    pc = layout.pageCollection()
-    page = QgsLayoutItemPage(layout)
-    page.setPageSize(page_format, orientation)
-    pc.addPage(page)
-    pc.page(0).setPageSize(page_format, orientation)
-
-    # Title
-    add_title(layout, "Ensemble des légendes du Géo-PDF :", x=10, y=7, font_size=14)
-
-    # We need a map_item configured so that the legend can
-    # filter by footprint. We link it to the current canvas.
-    # The map_item must be within the layout for setLinkedMap to work,
-    # but we place it outside the visible area (negative coordinates).
+def _create_dummy_map(layout, extent):
     map_item = QgsLayoutItemMap(layout)
+
     map_item.setRect(20, 20, 20, 20)
     map_item.setExtent(extent)
+
     layout.addLayoutItem(map_item)
+
     map_item.attemptResize(QgsLayoutSize(1, 1, QgsUnitTypes.LayoutMillimeters))
+
     map_item.attemptMove(QgsLayoutPoint(-100, -100, QgsUnitTypes.LayoutMillimeters))
 
-    # Legend
-    legend, _ = _make_legend(layout, map_item, layer_names, x=15, y=30, filter_by_extent=True)
-    legend.setColumnCount(3)
-    legend.setColumnSpace(5)
+    return map_item
 
-    # Element
-    add_logo(layout, logo_path, x=x_logo, y=y_logo)
-    add_copyright(layout, x=x_date, y=y_date, font_size=8)
 
-    # Export
+def _add_legend_title(layout, page_index, total_pages):
+    return add_title(
+        layout,
+        f"Légende ({page_index + 1}/{total_pages})",
+        x=10,
+        y=7,
+        font_size=14,
+    )
+
+
+def _add_legend_fixed_items(
+    layout,
+    logo_path,
+):
+    add_logo(
+        layout,
+        logo_path,
+        x=250,
+        y=160,
+    )
+
+    add_copyright(
+        layout,
+        x=240,
+        y=200,
+        font_size=8,
+    )
+
+
+def _create_legend_page(
+    layout,
+    chunk,
+    extent,
+    logo_path,
+    page_index,
+    total_pages,
+):
+    page = QgsLayoutItemPage(layout)
+
+    page.setPageSize(
+        "A4",
+        QgsLayoutItemPage.Orientation.Landscape,
+    )
+
+    layout.pageCollection().addPage(page)
+
+    _add_legend_title(
+        layout,
+        page_index,
+        total_pages,
+    )
+
+    map_item = _create_dummy_map(
+        layout,
+        extent,
+    )
+
+    _make_legend(
+        layout,
+        map_item,
+        chunk,
+        x=15,
+        y=30,
+        columns=2,
+        filter_by_extent=True,
+    )
+
+    _add_legend_fixed_items(
+        layout,
+        logo_path,
+    )
+
+
+def _export_layout_to_pdf(layout, path):
     exporter = QgsLayoutExporter(layout)
-    exporter.layout().refresh()
 
     settings = QgsLayoutExporter.PdfExportSettings()
     settings.dpi = 300
 
-    file_name = f"Legende_GeoPDF_{date_hm}.pdf"
-    path = os.path.join(directory, file_name)
     exporter.exportToPdf(path, settings)
 
-    # Clean only this layout
+
+def _export_separate_legend(
+    directory,
+    layer_names,
+    date_hm,
+    extent,
+    logo_path,
+    per_page=25,
+):
+    project = QgsProject.instance()
+    manager = project.layoutManager()
+
+    layout_name = f"Legende_GeoPDF_{date_hm}"
+
+    layout = create_layout(
+        project,
+        manager,
+        layout_name,
+    )
+
+    chunks = list(_chunk_layers(layer_names, per_page))
+
+    total_pages = len(chunks)
+
+    for page_index, chunk in enumerate(chunks):
+        _create_legend_page(
+            layout=layout,
+            chunk=chunk,
+            extent=extent,
+            logo_path=logo_path,
+            page_index=page_index,
+            total_pages=total_pages,
+        )
+
+    file_name = f"Legende_GeoPDF_{date_hm}.pdf"
+
+    path = os.path.join(directory, file_name)
+
+    _export_layout_to_pdf(layout, path)
+
     manager.removeLayout(layout)
 
     return path
