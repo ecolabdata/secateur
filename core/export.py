@@ -14,11 +14,11 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from .atlas_legend_exporter import export_legend_atlas
+
 # Import helpers from geopdf_utils
 from .geopdf_utils import (
     _add_frame_title,
-    _export_separate_legend,
-    _make_legend,
     add_copyright,
     add_logo,
     add_map_credits,
@@ -229,23 +229,22 @@ def export_results_to_pdf(
         if basemap_layer is not None:
             add_map_credits(layout, f"© {basemap_layer.name()}")
 
-        try:
-            legend = _make_legend(layout, map_item)
-        except Exception as e:
-            logger.error(f"Failed to build legend: {e}")
-            legend = None
-
         if feedback:
             feedback.setProgress(70)
             feedback.pushInfo("Légende construite")
 
-        # Export legend separately and remove from main layout
-        if legend is not None:
-            layout.removeLayoutItem(legend)
-            try:
-                _export_separate_legend(os.path.dirname(full_path), layer_names, date_hm, logo_path)
-            except Exception as e:
-                logger.warning(f"External legend export failed: {e}")
+        # Export legend separately using Atlas
+        try:
+            # Use the new Atlas-based legend exporter
+            legend_output_path = os.path.join(os.path.dirname(full_path), f"Legende_GeoPDF_{date_hm}.pdf")
+            export_legend_atlas(
+                template_path=os.path.join(os.path.dirname(__file__), "../resources/simple_legend_layout.qpt"),
+                output_path=legend_output_path,
+                layer_names=layer_names,
+                logo_path=logo_path,
+            )
+        except Exception as e:
+            logger.warning(f"External legend export failed: {e}")
 
         if feedback:
             feedback.setProgress(80)
