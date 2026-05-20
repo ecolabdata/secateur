@@ -259,8 +259,3 @@ def add_map_credits(layout, text: str, x=250.0, y=150.0):
     label = ajouter_label(layout, text, x, y, font_name="Arial", font_size=7)
     label.attemptResize(QgsLayoutSize(40, 20, QgsUnitTypes.LayoutMillimeters))
     return label
-
-
-# ──────────────────────────────────────────────
-#  Legende
-# ──────────────────────────────────────────────
