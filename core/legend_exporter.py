@@ -43,15 +43,6 @@ class LegendExportConfig:
 class LegendItemCounter:
     """Calculate the logical cost of a layer for legend pagination."""
 
-    def __init__(self):
-        """Initialize the counter with handler mappings for different renderer types."""
-        self._handlers = {
-            QgsSingleSymbolRenderer: self._count_single,
-            QgsCategorizedSymbolRenderer: self._count_categorized,
-            QgsGraduatedSymbolRenderer: self._count_graduated,
-            QgsRuleBasedRenderer: self._count_rule_based,
-        }
-
     def count(self, layer: QgsVectorLayer) -> int:
         """
         Calculate the cost of a layer in terms of legend items.
@@ -68,38 +59,31 @@ class LegendItemCounter:
             logger.warning(f"Layer '{layer.name()}' has no renderer, using fallback cost of 5")
             return 5
 
-        # Use handler mapping to avoid massive elif chain
-        for renderer_type, handler in self._handlers.items():
-            if isinstance(renderer, renderer_type):
-                return handler(renderer)
+        # Determine renderer type and calculate cost
+        if isinstance(renderer, QgsSingleSymbolRenderer):
+            # 1 title + 1 symbol = 2
+            return 2
 
-        # Fallback for unknown renderers
-        logger.warning(
-            f"Unknown renderer type for layer '{layer.name()}': {type(renderer).__name__}, using fallback cost of 5"
-        )
-        return 5
+        elif isinstance(renderer, QgsCategorizedSymbolRenderer):
+            # 1 title + number of categories
+            categories = renderer.categories()
+            return 1 + len(categories)
 
-    def _count_single(self, renderer: QgsSingleSymbolRenderer) -> int:
-        """Count cost for single symbol renderer."""
-        # 1 title + 1 symbol = 2
-        return 2
+        elif isinstance(renderer, QgsGraduatedSymbolRenderer):
+            # 1 title + number of ranges
+            ranges = renderer.ranges()
+            return 1 + len(ranges)
 
-    def _count_categorized(self, renderer: QgsCategorizedSymbolRenderer) -> int:
-        """Count cost for categorized symbol renderer."""
-        # 1 title + number of categories
-        categories = renderer.categories()
-        return 1 + len(categories)
+        elif isinstance(renderer, QgsRuleBasedRenderer):
+            # 1 title + number of visible rules (recursive)
+            return 1 + self._count_rules(renderer.rootRule())
 
-    def _count_graduated(self, renderer: QgsGraduatedSymbolRenderer) -> int:
-        """Count cost for graduated symbol renderer."""
-        # 1 title + number of ranges
-        ranges = renderer.ranges()
-        return 1 + len(ranges)
-
-    def _count_rule_based(self, renderer: QgsRuleBasedRenderer) -> int:
-        """Count cost for rule-based renderer."""
-        # 1 title + number of visible rules (recursive)
-        return 1 + self._count_rules(renderer.rootRule())
+        else:
+            # Fallback for unknown renderers
+            logger.warning(
+                f"Unknown renderer type for layer '{layer.name()}': {type(renderer).__name__}, using fallback cost of 5"
+            )
+            return 5
 
     def _count_rules(self, rule) -> int:
         """
@@ -123,6 +107,14 @@ class LegendItemCounter:
         return count
 
 
+@dataclass(slots=True)
+class LegendPage:
+    """Domain entity representing a legend page."""
+
+    layer_names: list[str]
+    estimated_cost: int
+
+
 class LegendPaginationService:
     """
     Paginate layers based on their estimated legend item cost.
@@ -138,9 +130,12 @@ class LegendPaginationService:
         self.counter = counter
         self.max_items_per_page = max_items_per_page
 
-    def paginate(self, layer_names: list[str]) -> list[list[str]]:
+    def paginate(self, layer_names: list[str]) -> list[LegendPage]:
         """
         Paginate layers according to their legend complexity.
+
+        Returns a list of ``LegendPage`` objects, each containing the
+        layer names for that page and the total estimated cost.
 
         Strategy:
         - accumulate layers until max_items_per_page is reached
@@ -149,7 +144,7 @@ class LegendPaginationService:
         if not layer_names:
             raise ValueError("No layers provided for export")
 
-        pages: list[list[str]] = []
+        pages: list[LegendPage] = []
 
         current_page: list[str] = []
         current_cost = 0
@@ -173,7 +168,7 @@ class LegendPaginationService:
             logger.debug(f"Layer '{layer_name}' legend cost = {layer_cost}")
 
             if current_page and (current_cost + layer_cost > self.max_items_per_page):
-                pages.append(current_page)
+                pages.append(LegendPage(current_page, current_cost))
                 current_page = []
                 current_cost = 0
 
@@ -182,7 +177,7 @@ class LegendPaginationService:
 
         # Final page
         if current_page:
-            pages.append(current_page)
+            pages.append(LegendPage(current_page, current_cost))
 
         logger.info(f"Legend pagination complete: {len(pages)} page(s) generated")
 
@@ -307,7 +302,6 @@ class LegendLayoutBuilder:
 
     def build(self, layer_names: list[str], page_number: int, total_pages: int):
         """Build the layout with given layers and metadata."""
-        # Clear the root for this page
         self.root.clear()
 
         items = self._get_layout_items()
@@ -443,9 +437,9 @@ class LegendExportService:
 
     def export(self) -> str:
         """Execute the complete export pipeline."""
-        # Paginate layers
-        chunks = self.paginator.paginate(self.config.layer_names)
-        total_pages = len(chunks)
+        # Paginate layers into LegendPage objects
+        pages = self.paginator.paginate(self.config.layer_names)
+        total_pages = len(pages)
 
         # Create temporary directory for page PDFs
         with TemporaryDirectory() as tmp_dir:
@@ -453,10 +447,10 @@ class LegendExportService:
             page_paths = []
 
             # Process each page
-            for page_index, layer_chunk in enumerate(chunks, 1):
+            for page_index, page in enumerate(pages, 1):
+                layer_chunk = page.layer_names
                 page_path = self._export_page(layer_chunk, page_index, total_pages, tmp_path)
                 page_paths.append(page_path)
-                gc.collect()
 
             # Merge all pages
             self.merger_service.merge(page_paths, self.config.output_path)
