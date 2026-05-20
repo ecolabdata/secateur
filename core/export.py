@@ -14,7 +14,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from .atlas_legend_exporter import export_legend_atlas
+from .atlas_legend_exporter import export_legend
 
 # Import helpers from geopdf_utils
 from .geopdf_utils import (
@@ -237,8 +237,8 @@ def export_results_to_pdf(
         try:
             # Use the new Atlas-based legend exporter
             legend_output_path = os.path.join(os.path.dirname(full_path), f"Legende_GeoPDF_{date_hm}.pdf")
-            export_legend_atlas(
-                template_path=os.path.join(os.path.dirname(__file__), "../resources/simple_legend_layout.qpt"),
+            export_legend(
+                template_path=os.path.join(os.path.dirname(__file__), "../resources/legend_layout.qpt"),
                 output_path=legend_output_path,
                 layer_names=layer_names,
                 logo_path=logo_path,
