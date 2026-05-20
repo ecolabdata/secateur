@@ -153,7 +153,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem title="" id="legend" minSymbolSize="0" maxSymbolSize="0" frame="false" wmsLegendWidth="50" symbolWidth="7" referencePoint="0" boxSpace="2" symbolHeight="4" resizeToContents="0" equalColumnWidth="1" opacity="1" rasterBorderColor="0,0,0,255" columnCount="2" position="30,30,mm" templateUuid="{908e9d1d-2368-494d-baaf-363483b66789}" outlineWidthM="0.3,mm" positionOnPage="30,30,mm" uuid="{908e9d1d-2368-494d-baaf-363483b66789}" visibility="1" wrapChar="" splitLayer="0" wmsLegendHeight="25" zValue="5" rasterBorder="1" background="true" itemRotation="0" groupUuid="" blendMode="0" positionLock="false" rasterBorderWidth="0" frameJoinStyle="miter" titleAlignment="1" excludeFromExports="0" type="65642" size="237,150,mm" symbolAlignment="1" columnSpace="2" legendFilterByAtlas="0">
+ <LayoutItem title="" id="legend" minSymbolSize="0" maxSymbolSize="0" frame="false" wmsLegendWidth="50" symbolWidth="7" referencePoint="0" boxSpace="2" symbolHeight="4" resizeToContents="0" equalColumnWidth="1" opacity="1" rasterBorderColor="0,0,0,255" columnCount="1" position="30,30,mm" templateUuid="{908e9d1d-2368-494d-baaf-363483b66789}" outlineWidthM="0.3,mm" positionOnPage="30,30,mm" uuid="{908e9d1d-2368-494d-baaf-363483b66789}" visibility="1" wrapChar="" splitLayer="0" wmsLegendHeight="25" zValue="5" rasterBorder="1" background="true" itemRotation="0" groupUuid="" blendMode="0" positionLock="false" rasterBorderWidth="0" frameJoinStyle="miter" titleAlignment="1" excludeFromExports="0" type="65642" size="237,150,mm" symbolAlignment="1" columnSpace="2" legendFilterByAtlas="0">
   <FrameColor red="0" green="0" alpha="255" blue="0"/>
   <BackgroundColor red="255" green="255" alpha="255" blue="255"/>
   <LayoutObject>

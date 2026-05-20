@@ -139,8 +139,7 @@ class LegendLayoutBuilder:
                 continue
 
             # Take the first layer with matching name and clone it for safety
-            layer = layers[0].clone()
-            self.root.addLayer(layer)
+            self.root.addLayer(layers[0])
             layers_added += 1
 
         if layers_added == 0:
@@ -151,8 +150,10 @@ class LegendLayoutBuilder:
 
         # Refresh legend with proper sequence for QGIS 3.34
         legend.invalidateCache()
+        legend.updateLegend()
         legend.refresh()
         legend.adjustBoxSize()
+
         self.layout.refresh()
 
         # Setup text items
@@ -264,30 +265,24 @@ class LegendExportService:
                 # Create new layout for this page
                 layout = self.layout_factory.create_layout(self.project)
 
-                # Add layout to manager for proper cleanup
-                manager = self.project.layoutManager()
-                layout_name = f"legend_export_{page_index}"
-                layout.setName(layout_name)
-                manager.addLayout(layout)
+                # Build the layout
+                builder = LegendLayoutBuilder(
+                    project=self.project,
+                    layout=layout,
+                    title=self.config.title,
+                    author=self.config.author,
+                    logo_path=self.config.logo_path,
+                )
+                builder.build(layer_chunk, page_index, total_pages)
 
-                try:
-                    # Build the layout
-                    builder = LegendLayoutBuilder(
-                        project=self.project,
-                        layout=layout,
-                        title=self.config.title,
-                        author=self.config.author,
-                        logo_path=self.config.logo_path,
-                    )
-                    builder.build(layer_chunk, page_index, total_pages)
+                # Export page to PDF
+                page_path = tmp_path / f"legend_page_{page_index:03d}.pdf"
+                self.page_exporter.export(layout, page_path)
+                page_paths.append(page_path)
 
-                    # Export page to PDF
-                    page_path = tmp_path / f"legend_page_{page_index:03d}.pdf"
-                    self.page_exporter.export(layout, page_path)
-                    page_paths.append(page_path)
-                finally:
-                    # Remove layout from manager to prevent memory leaks
-                    manager.removeLayout(layout)
+                del builder
+                del layout
+                gc.collect()
 
             # Merge all pages
             self.merger_service.merge(page_paths, self.config.output_path)
