@@ -96,7 +96,10 @@ def export_legend_atlas(
         atlas.setFilterFeatures(False)
         atlas.setSortFeatures(False)
         atlas.updateFeatures()
+        atlas.first()
+        atlas.refreshCurrentFeature()
 
+        logger.warning(f"Atlas count after update: {atlas.count()}")
 
 
         # Log diagnostic info
@@ -126,7 +129,7 @@ def export_legend_atlas(
 
 def _create_memory_layer_for_atlas(layer_names: list[str], per_page: int = 25) -> QgsVectorLayer:
     layer = QgsVectorLayer(
-        "Point?crs=EPSG:4326",
+        "Polygon?crs=EPSG:4326",
         "legend_atlas",
         "memory",
     )
@@ -155,7 +158,9 @@ def _create_memory_layer_for_atlas(layer_names: list[str], per_page: int = 25) -
         feature.setFields(layer.fields())
 
         feature.setGeometry(
-            QgsGeometry.fromWkt("POINT(0 0)")
+            QgsGeometry.fromWkt(
+                "POLYGON((0 0,0 1,1 1,1 0,0 0))"
+            )
         )
 
         feature["id"] = page_index + 1
@@ -219,17 +224,24 @@ def _export_layout_to_pdf(layout, path):
     settings = QgsLayoutExporter.PdfExportSettings()
     settings.dpi = 300
 
-    # Force the Atlas to render properly
     atlas = layout.atlas()
-    if atlas and atlas.enabled():
-        # Ensure Atlas is properly initialized for rendering
-        atlas.beginRender()
 
-    try:
-        result = exporter.exportToPdf(path, settings)
-    finally:
-        if atlas and atlas.enabled():
-            atlas.endRender()
+    if atlas and atlas.enabled():
+        result, error = exporter.exportToPdf(
+            atlas,
+            path,
+            settings,
+        )
+    else:
+        result = exporter.exportToPdf(
+            path,
+            settings,
+        )
+        error = ""
+
+    logger.warning(f"Export result: {result}, error={error}")
 
     if result != QgsLayoutExporter.Success:
-        raise Exception("PDF export failed")
+        raise Exception(
+            f"PDF export failed with code={result}, error={error}"
+        )
