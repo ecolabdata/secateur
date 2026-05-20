@@ -14,7 +14,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from .atlas_legend_exporter import export_legend
+from .legend_exporter import export_legend
 
 # Import helpers from geopdf_utils
 from .geopdf_utils import (

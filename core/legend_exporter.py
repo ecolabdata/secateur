@@ -340,38 +340,3 @@ def export_legend(
 
     service = LegendExportService(QgsProject.instance(), config)
     return service.export()
-
-
-# deprecated
-def export_legend_atlas(
-    template_path: str,
-    output_path: str,
-    layer_names: list[str],
-    logo_path: str | None = None,
-    per_page: int = 10,
-) -> str:
-    """
-    Export a legend using QGIS Atlas functionality instead of manual generation.
-
-    This function creates an Atlas-driven legend PDF by:
-    1. Loading the template file
-    2. Creating a memory layer to serve as the Atlas coverage layer
-    3. Using the template's Atlas settings to generate legend pages
-    4. Replacing the Atlas coverage layer with our memory layer
-
-    Parameters:
-        template_path: Path to the QPT template file
-        output_path: Output PDF file path
-        layer_names: List of layer names to include in the legend
-        logo_path: Optional logo path to override in template
-        per_page: Number of layers per legend page
-
-    Returns:
-        The output path of the generated PDF
-
-    Raises:
-        ValueError: If required items (legend, title) are missing from template
-        Exception: If export fails
-    """
-    # This is kept for backward compatibility but should not be used anymore
-    raise NotImplementedError("This function is deprecated and should not be used.")
