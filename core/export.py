@@ -14,8 +14,6 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from .legend_exporter import export_legend
-
 # Import helpers from geopdf_utils
 from .geopdf_utils import (
     _add_frame_title,
@@ -26,6 +24,7 @@ from .geopdf_utils import (
     add_scale,
     add_title,
 )
+from .legend_exporter import export_legend
 from .logger import logger
 from .utils import (
     _format_value,

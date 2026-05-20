@@ -7,6 +7,8 @@ from typing import cast
 
 from pypdf import PdfWriter
 from qgis.core import (
+    QgsCategorizedSymbolRenderer,
+    QgsGraduatedSymbolRenderer,
     QgsLayerTree,
     QgsLayoutExporter,
     QgsLayoutItemLabel,
@@ -15,6 +17,9 @@ from qgis.core import (
     QgsPrintLayout,
     QgsProject,
     QgsReadWriteContext,
+    QgsRuleBasedRenderer,
+    QgsSingleSymbolRenderer,
+    QgsVectorLayer,
 )
 from qgis.PyQt.QtXml import QDomDocument
 
@@ -30,22 +35,149 @@ class LegendExportConfig:
     layer_names: list[str]
     logo_path: Path | None = None
     per_page: int = 10
+    max_legend_items_per_page: int = 20
     dpi: int = 300
     title: str = "Légende"
     author: str = "QGIS User"
 
 
-class LegendPaginator:
-    """Handles pagination of layers into pages."""
+class LegendItemCounter:
+    """Calculate the logical cost of a layer for legend pagination."""
 
-    def __init__(self, per_page: int):
-        self.per_page = per_page
+    def count(self, layer: QgsVectorLayer) -> int:
+        """
+        Calculate the cost of a layer in terms of legend items.
+
+        Cost is calculated based on:
+        - Title (always 1)
+        - Symbols (1 each)
+        - Categories (1 each)
+        - Ranges (1 each)
+        - Rules (1 each)
+        """
+        renderer = layer.renderer()
+        if renderer is None:
+            logger.warning(f"Layer '{layer.name()}' has no renderer, using fallback cost of 5")
+            return 5
+
+        # Determine renderer type and calculate cost
+        if isinstance(renderer, QgsSingleSymbolRenderer):
+            # 1 title + 1 symbol = 2
+            return 2
+
+        elif isinstance(renderer, QgsCategorizedSymbolRenderer):
+            # 1 title + number of categories
+            categories = renderer.categories()
+            return 1 + len(categories)
+
+        elif isinstance(renderer, QgsGraduatedSymbolRenderer):
+            # 1 title + number of ranges
+            ranges = renderer.ranges()
+            return 1 + len(ranges)
+
+        elif isinstance(renderer, QgsRuleBasedRenderer):
+            # 1 title + number of visible rules (recursive)
+            return 1 + self._count_rules(renderer.rootRule())
+
+        else:
+            # Fallback for unknown renderers
+            logger.warning(
+                f"Unknown renderer type for layer '{layer.name()}': {type(renderer).__name__}, using fallback cost of 5"
+            )
+            return 5
+
+    def _count_rules(self, rule) -> int:
+        """
+        Recursively count active legend rules.
+
+        Only counts rules that are active and have symbols.
+        """
+        if not rule:
+            return 0
+
+        count = 0
+
+        # Count only active rules with symbols
+        if rule.isActive() and rule.symbol() is not None:
+            count += 1
+
+        # Recursively count child rules
+        for child_rule in rule.children():
+            count += self._count_rules(child_rule)
+
+        return count
+
+
+class LegendPaginationService:
+    """
+    Paginate layers based on their estimated legend item cost.
+    """
+
+    def __init__(
+        self,
+        project: QgsProject,
+        counter: LegendItemCounter,
+        max_items_per_page: int,
+    ):
+        self.project = project
+        self.counter = counter
+        self.max_items_per_page = max_items_per_page
 
     def paginate(self, layer_names: list[str]) -> list[list[str]]:
-        """Paginate layer names into chunks."""
+        """
+        Paginate layers according to their legend complexity.
+
+        Strategy:
+        - accumulate layers until max_items_per_page is reached
+        - if a single layer exceeds the limit, place it alone
+        """
         if not layer_names:
             raise ValueError("No layers provided for export")
-        return [layer_names[i : i + self.per_page] for i in range(0, len(layer_names), self.per_page)]
+
+        pages: list[list[str]] = []
+
+        current_page: list[str] = []
+        current_cost = 0
+
+        for layer_name in layer_names:
+            layers = self.project.mapLayersByName(layer_name)
+
+            if not layers:
+                logger.warning(f"Layer '{layer_name}' not found in project")
+                continue
+
+            layer = layers[0]
+
+            # Fallback cost for non-vector layers
+            if not isinstance(layer, QgsVectorLayer):
+                logger.warning(f"Layer '{layer_name}' is not a vector layer, using fallback cost of 5")
+                layer_cost = 5
+            else:
+                layer_cost = self.counter.count(layer)
+
+            logger.debug(f"Layer '{layer_name}' legend cost = {layer_cost}")
+
+            # If adding this layer exceeds page budget,
+            # flush current page first
+            if current_page and (current_cost + layer_cost > self.max_items_per_page):
+                pages.append(current_page)
+
+                current_page = []
+                current_cost = 0
+
+            current_page.append(layer_name)
+            current_cost += layer_cost
+
+        # Final page
+        if current_page:
+            pages.append(current_page)
+            logger.info(f"Created page with cost={current_cost} and {len(current_page)} layers")
+
+        logger.info(f"Pagination complete: {len(pages)} page(s) generated")
+
+        logger.info(f"Pagination complete: {len(pages)} page(s) generated")
+
+        return pages
 
 
 class LayoutFactory:
@@ -242,7 +374,12 @@ class LegendExportService:
     ):
         self.project = project
         self.config = config
-        self.paginator = LegendPaginator(config.per_page)
+        self.counter = LegendItemCounter()
+        self.paginator = LegendPaginationService(
+            project=project,
+            counter=self.counter,
+            max_items_per_page=config.max_legend_items_per_page,
+        )
         self.layout_factory = LayoutFactory(config.template_path)
         self.page_exporter = PdfPageExporter(config)
         self.merger_service = PdfMergerService()
@@ -299,7 +436,7 @@ def export_legend(
     output_path: str,
     layer_names: list[str],
     logo_path: str | None = None,
-    per_page: int = 10,
+    max_legend_items_per_page: int = 20,
     dpi: int = 300,
     title: str = "Légende",
     author: str = "QGIS User",
@@ -308,7 +445,7 @@ def export_legend(
     Export a legend using a new deterministic pipeline.
 
     This function creates a new legend PDF by:
-    1. Paginating layers into pages
+    1. Paginating layers into pages based on legend item cost
     2. Creating a new layout for each page
     3. Building each page with appropriate layers
     4. Exporting each page to PDF
@@ -319,7 +456,8 @@ def export_legend(
         output_path: Output PDF file path
         layer_names: List of layer names to include in the legend
         logo_path: Optional logo path to override in template
-        per_page: Number of layers per legend page
+        per_page: Number of layers per legend page (LEGACY PARAMETER - use max_legend_items_per_page instead)
+        max_legend_items_per_page: Maximum legend items per page (new parameter)
         dpi: DPI for PDF export
         title: Title for the legend
         author: Author for the legend
@@ -332,7 +470,7 @@ def export_legend(
         output_path=Path(output_path),
         layer_names=layer_names,
         logo_path=Path(logo_path) if logo_path else None,
-        per_page=per_page,
+        max_legend_items_per_page=max_legend_items_per_page,
         dpi=dpi,
         title=title,
         author=author,
