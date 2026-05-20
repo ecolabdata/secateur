@@ -1,4 +1,5 @@
 import gc
+import textwrap
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -272,6 +273,15 @@ class LegendLayoutBuilder:
             logo_item=logo_item,
         )
 
+    def _format_layer_name(self, name: str, width: int = 100) -> str:
+        """Wrap long layer names for legend display.
+
+        Uses ``textwrap.wrap`` to insert line breaks so the legend
+        respects the given width. Returns the formatted name.
+        """
+        # ``textwrap.wrap`` returns a list of lines; join with newline
+        return "\n".join(textwrap.wrap(name, width=width))
+
     def _populate_root(self, layer_names: list[str]) -> int:
         """Add the given layers to the internal root tree.
 
@@ -283,7 +293,11 @@ class LegendLayoutBuilder:
             if not layers:
                 logger.warning(f"Layer '{name}' not found in project")
                 continue
-            self.root.addLayer(layers[0])
+            # Add the layer to the tree and capture the node
+            layer_node = self.root.addLayer(layers[0])
+            # Wrap long names to avoid overflow in the legend
+            wrapped_name = self._format_layer_name(layer_node.name())
+            layer_node.setName(wrapped_name)
             layers_added += 1
         return layers_added
 
