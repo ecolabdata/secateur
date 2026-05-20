@@ -220,6 +220,16 @@ class LayoutFactory:
 class LegendLayoutBuilder:
     """Builds a single legend page layout."""
 
+    @dataclass(slots=True)
+    class LegendLayoutItems:
+        """Container for layout items retrieved from the template."""
+
+        legend: QgsLayoutItemLegend | None
+        title_item: QgsLayoutItemLabel | None
+        author_item: QgsLayoutItemLabel | None
+        date_item: QgsLayoutItemLabel | None
+        logo_item: QgsLayoutItemPicture | None
+
     def __init__(
         self,
         project: QgsProject,
@@ -237,12 +247,8 @@ class LegendLayoutBuilder:
         self.root = QgsLayerTree()
         self.root.setName("LegendRoot")
 
-    def build(self, layer_names: list[str], page_number: int, total_pages: int):
-        """Build the layout with given layers and metadata."""
-        # Clear the root for this page
-        self.root.clear()
-
-        # Retrieve template items
+    def _get_layout_items(self) -> "LegendLayoutBuilder.LegendLayoutItems":
+        """Retrieve and return all required layout items from the template."""
         legend = cast(
             QgsLayoutItemLegend | None,
             self.layout.itemById("legend"),
@@ -263,42 +269,67 @@ class LegendLayoutBuilder:
             QgsLayoutItemPicture | None,
             self.layout.itemById("logo"),
         )
+        return self.LegendLayoutItems(
+            legend=legend,
+            title_item=title_item,
+            author_item=author_item,
+            date_item=date_item,
+            logo_item=logo_item,
+        )
 
-        # Validate required items
-        if legend is None:
-            raise ValueError("Required legend item with ID 'legend' not found in template")
+    def _populate_root(self, layer_names: list[str]) -> int:
+        """Add the given layers to the internal root tree.
 
-        # Disable auto-update model
-        legend.setAutoUpdateModel(False)
-
-        # Add layers to tree
+        Returns the number of layers successfully added.
+        """
         layers_added = 0
         for name in layer_names:
             layers = self.project.mapLayersByName(name)
             if not layers:
                 logger.warning(f"Layer '{name}' not found in project")
                 continue
-
-            # Take the first layer with matching name and clone it for safety
             self.root.addLayer(layers[0])
             layers_added += 1
+        return layers_added
 
-        if layers_added == 0:
-            raise RuntimeError(f"No valid layers found for page {page_number}")
-
-        # Inject layer tree into legend
+    def _configure_legend(self, legend: QgsLayoutItemLegend) -> None:
+        """Configure legend settings and attach the populated layer tree."""
+        legend.setAutoUpdateModel(False)
         legend.model().setRootGroup(self.root)
 
-        # Refresh legend with proper sequence for QGIS 3.34
+    def _refresh_legend(self, legend: QgsLayoutItemLegend) -> None:
+        """Refresh the legend to reflect the new model."""
         legend.invalidateCache()
         legend.updateLegend()
         legend.refresh()
         legend.adjustBoxSize()
-
         self.layout.refresh()
 
+    def build(self, layer_names: list[str], page_number: int, total_pages: int):
+        """Build the layout with given layers and metadata."""
+        # Clear the root for this page
+        self.root.clear()
+
+        items = self._get_layout_items()
+        if items.legend is None:
+            raise ValueError("Required legend item with ID 'legend' not found in template")
+
+        layers_added = self._populate_root(layer_names)
+        if layers_added == 0:
+            raise RuntimeError(f"No valid layers found for page {page_number}")
+
+        self._configure_legend(items.legend)
+        self._refresh_legend(items.legend)
+
         # Setup text items
-        self._setup_texts(title_item, author_item, date_item, logo_item, page_number, total_pages)
+        self._setup_texts(
+            items.title_item,
+            items.author_item,
+            items.date_item,
+            items.logo_item,
+            page_number,
+            total_pages,
+        )
 
     def _setup_texts(
         self,
@@ -358,9 +389,6 @@ class PdfPageExporter:
 class PdfMergerService:
     """Merges individual PDF pages into a single PDF."""
 
-    def __init__(self):
-        pass
-
     def merge(self, pdf_paths: list[Path], output_path: Path) -> None:
         """Merge multiple PDF files into one."""
         writer = PdfWriter()
@@ -393,6 +421,26 @@ class LegendExportService:
         self.page_exporter = PdfPageExporter(config)
         self.merger_service = PdfMergerService()
 
+    def _export_page(self, layer_chunk: list[str], page_index: int, total_pages: int, tmp_path: Path) -> Path:
+        """Create layout, build it, export to PDF and return the PDF path for a single page."""
+        # Create new layout for this page
+        layout = self.layout_factory.create_layout(self.project)
+
+        # Build the layout
+        builder = LegendLayoutBuilder(
+            project=self.project,
+            layout=layout,
+            title=self.config.title,
+            author=self.config.author,
+            logo_path=self.config.logo_path,
+        )
+        builder.build(layer_chunk, page_index, total_pages)
+
+        # Export page to PDF
+        page_path = tmp_path / f"legend_page_{page_index:03d}.pdf"
+        self.page_exporter.export(layout, page_path)
+        return page_path
+
     def export(self) -> str:
         """Execute the complete export pipeline."""
         # Paginate layers
@@ -406,26 +454,8 @@ class LegendExportService:
 
             # Process each page
             for page_index, layer_chunk in enumerate(chunks, 1):
-                # Create new layout for this page
-                layout = self.layout_factory.create_layout(self.project)
-
-                # Build the layout
-                builder = LegendLayoutBuilder(
-                    project=self.project,
-                    layout=layout,
-                    title=self.config.title,
-                    author=self.config.author,
-                    logo_path=self.config.logo_path,
-                )
-                builder.build(layer_chunk, page_index, total_pages)
-
-                # Export page to PDF
-                page_path = tmp_path / f"legend_page_{page_index:03d}.pdf"
-                self.page_exporter.export(layout, page_path)
+                page_path = self._export_page(layer_chunk, page_index, total_pages, tmp_path)
                 page_paths.append(page_path)
-
-                del builder
-                del layout
                 gc.collect()
 
             # Merge all pages
