@@ -225,6 +225,7 @@ class LegendLayoutBuilder:
         author_item: QgsLayoutItemLabel | None
         date_item: QgsLayoutItemLabel | None
         logo_item: QgsLayoutItemPicture | None
+        page_item: QgsLayoutItemLabel | None
 
     def __init__(
         self,
@@ -265,12 +266,17 @@ class LegendLayoutBuilder:
             QgsLayoutItemPicture | None,
             self.layout.itemById("logo"),
         )
+        page_item = cast(
+            QgsLayoutItemLabel | None,
+            self.layout.itemById("page"),
+        )
         return self.LegendLayoutItems(
             legend=legend,
             title_item=title_item,
             author_item=author_item,
             date_item=date_item,
             logo_item=logo_item,
+            page_item=page_item,
         )
 
     def _format_layer_name(self, name: str, width: int = 100) -> str:
@@ -335,6 +341,7 @@ class LegendLayoutBuilder:
             items.author_item,
             items.date_item,
             items.logo_item,
+            items.page_item,
             page_number,
             total_pages,
         )
@@ -345,14 +352,19 @@ class LegendLayoutBuilder:
         author_item: QgsLayoutItemLabel | None,
         date_item: QgsLayoutItemLabel | None,
         logo_item: QgsLayoutItemPicture | None,
+        page_item: QgsLayoutItemLabel | None,
         page_number: int,
         total_pages: int,
     ):
         """Setup the text items in the layout."""
         # Set up title
         if title_item:
-            title_item.setText(f"{self.title} - Page {page_number}/{total_pages}")
+            title_item.setText(self.title)
             title_item.setVisible(True)
+        # Set up page number
+        if page_item:
+            page_item.setText(f"{page_number}/{total_pages}")
+            page_item.setVisible(True)
 
         # Set up author
         if author_item:
