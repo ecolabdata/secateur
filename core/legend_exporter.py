@@ -34,7 +34,6 @@ class LegendExportConfig:
     output_path: Path
     layer_names: list[str]
     logo_path: Path | None = None
-    per_page: int = 10
     max_legend_items_per_page: int = 20
     dpi: int = 300
     title: str = "Légende"
@@ -43,6 +42,15 @@ class LegendExportConfig:
 
 class LegendItemCounter:
     """Calculate the logical cost of a layer for legend pagination."""
+
+    def __init__(self):
+        """Initialize the counter with handler mappings for different renderer types."""
+        self._handlers = {
+            QgsSingleSymbolRenderer: self._count_single,
+            QgsCategorizedSymbolRenderer: self._count_categorized,
+            QgsGraduatedSymbolRenderer: self._count_graduated,
+            QgsRuleBasedRenderer: self._count_rule_based,
+        }
 
     def count(self, layer: QgsVectorLayer) -> int:
         """
@@ -60,31 +68,38 @@ class LegendItemCounter:
             logger.warning(f"Layer '{layer.name()}' has no renderer, using fallback cost of 5")
             return 5
 
-        # Determine renderer type and calculate cost
-        if isinstance(renderer, QgsSingleSymbolRenderer):
-            # 1 title + 1 symbol = 2
-            return 2
+        # Use handler mapping to avoid massive elif chain
+        for renderer_type, handler in self._handlers.items():
+            if isinstance(renderer, renderer_type):
+                return handler(renderer)
 
-        elif isinstance(renderer, QgsCategorizedSymbolRenderer):
-            # 1 title + number of categories
-            categories = renderer.categories()
-            return 1 + len(categories)
+        # Fallback for unknown renderers
+        logger.warning(
+            f"Unknown renderer type for layer '{layer.name()}': {type(renderer).__name__}, using fallback cost of 5"
+        )
+        return 5
 
-        elif isinstance(renderer, QgsGraduatedSymbolRenderer):
-            # 1 title + number of ranges
-            ranges = renderer.ranges()
-            return 1 + len(ranges)
+    def _count_single(self, renderer: QgsSingleSymbolRenderer) -> int:
+        """Count cost for single symbol renderer."""
+        # 1 title + 1 symbol = 2
+        return 2
 
-        elif isinstance(renderer, QgsRuleBasedRenderer):
-            # 1 title + number of visible rules (recursive)
-            return 1 + self._count_rules(renderer.rootRule())
+    def _count_categorized(self, renderer: QgsCategorizedSymbolRenderer) -> int:
+        """Count cost for categorized symbol renderer."""
+        # 1 title + number of categories
+        categories = renderer.categories()
+        return 1 + len(categories)
 
-        else:
-            # Fallback for unknown renderers
-            logger.warning(
-                f"Unknown renderer type for layer '{layer.name()}': {type(renderer).__name__}, using fallback cost of 5"
-            )
-            return 5
+    def _count_graduated(self, renderer: QgsGraduatedSymbolRenderer) -> int:
+        """Count cost for graduated symbol renderer."""
+        # 1 title + number of ranges
+        ranges = renderer.ranges()
+        return 1 + len(ranges)
+
+    def _count_rule_based(self, renderer: QgsRuleBasedRenderer) -> int:
+        """Count cost for rule-based renderer."""
+        # 1 title + number of visible rules (recursive)
+        return 1 + self._count_rules(renderer.rootRule())
 
     def _count_rules(self, rule) -> int:
         """
@@ -157,11 +172,8 @@ class LegendPaginationService:
 
             logger.debug(f"Layer '{layer_name}' legend cost = {layer_cost}")
 
-            # If adding this layer exceeds page budget,
-            # flush current page first
             if current_page and (current_cost + layer_cost > self.max_items_per_page):
                 pages.append(current_page)
-
                 current_page = []
                 current_cost = 0
 
@@ -171,11 +183,8 @@ class LegendPaginationService:
         # Final page
         if current_page:
             pages.append(current_page)
-            logger.info(f"Created page with cost={current_cost} and {len(current_page)} layers")
 
-        logger.info(f"Pagination complete: {len(pages)} page(s) generated")
-
-        logger.info(f"Pagination complete: {len(pages)} page(s) generated")
+        logger.info(f"Legend pagination complete: {len(pages)} page(s) generated")
 
         return pages
 
@@ -397,8 +406,6 @@ class LegendExportService:
 
             # Process each page
             for page_index, layer_chunk in enumerate(chunks, 1):
-                logger.info(f"Exporting page {page_index}/{total_pages}")
-
                 # Create new layout for this page
                 layout = self.layout_factory.create_layout(self.project)
 
@@ -423,7 +430,7 @@ class LegendExportService:
 
             # Merge all pages
             self.merger_service.merge(page_paths, self.config.output_path)
-            logger.info(f"Final PDF exported to: {self.config.output_path}")
+            logger.info(f"Final legend PDF exported to: {self.config.output_path}")
 
             # Force garbage collection for Windows/QGIS stability
             gc.collect()
@@ -456,7 +463,6 @@ def export_legend(
         output_path: Output PDF file path
         layer_names: List of layer names to include in the legend
         logo_path: Optional logo path to override in template
-        per_page: Number of layers per legend page (LEGACY PARAMETER - use max_legend_items_per_page instead)
         max_legend_items_per_page: Maximum legend items per page (new parameter)
         dpi: DPI for PDF export
         title: Title for the legend
