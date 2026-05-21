@@ -5,6 +5,7 @@ This module provides helper functions for handling layout items in GeoPDF export
 """
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 from qgis.core import (
     QgsLayoutItem,
@@ -14,8 +15,10 @@ from qgis.core import (
     QgsPrintLayout,
 )
 
+T = TypeVar("T", bound=QgsLayoutItem)
 
-@dataclass
+
+@dataclass(slots=True)
 class ReportLayoutItems:
     """Container for commonly accessed layout items in a GeoPDF report.
 
@@ -43,7 +46,10 @@ def resolve_layout_items(layout: QgsPrintLayout) -> ReportLayoutItems:
     """
 
     # Helper to fetch and assert type
-    def _get_item(item_id: str, expected_type):
+    def _get_item(
+        item_id: str,
+        expected_type: type[T],
+    ) -> T:
         item = layout.itemById(item_id)
         if item is None:
             raise ValueError(f"Layout item '{item_id}' not found")
@@ -64,15 +70,3 @@ def resolve_layout_items(layout: QgsPrintLayout) -> ReportLayoutItems:
         date_item=date_item,
         logo_item=logo_item,
     )
-
-
-def get_layout_item(layout: QgsPrintLayout, item_id: str) -> QgsLayoutItem:
-    """Legacy helper to get a layout item by ID.
-
-    Maintained for backward compatibility; prefers ``resolve_layout_items`` for
-    structured access.
-    """
-    item = layout.itemById(item_id)
-    if item is None:
-        raise ValueError(f"Layout item '{item_id}' not found")
-    return item

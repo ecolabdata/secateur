@@ -21,7 +21,7 @@ from ...logger import logger
 from ...utils.feedback import update_feedback
 from .config import GeoPdfExportConfig
 from .extent import compute_export_extent, get_source_vector_layer
-from .layout_builder import build_report_layout
+from .layout import build_report_layout
 from .visibility import temporary_visible_layers
 
 
@@ -81,7 +81,6 @@ class GeoPdfExportService:
                 logo_path=str(self.config.logo_path) if self.config.logo_path else None,
                 title=self.config.title,
                 author=self.config.author,
-                basemap_layer=basemap_layer,
             )
             update_feedback(feedback, 40, "Template QPT chargé")
             update_feedback(feedback, 50, "Carte configurée")

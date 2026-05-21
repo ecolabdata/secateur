@@ -1,22 +1,99 @@
 """
-Map configurator utilities for GeoPDF export.
+Unified layout utilities for GeoPDF export.
+
+This module consolidates layout building, map configuration, and item population
+functions that were previously split across several files. It provides a simple
+API for constructing a QGIS print layout ready for GeoPDF export.
 """
 
-from qgis.core import QgsPrintLayout, QgsRectangle
-
+from qgis.core import (
+    QgsPrintLayout,
+    QgsProject,
+    QgsRectangle,
+    QgsMapLayer,
+    QgsLayoutItemMap,
+)
 from ...logger import logger
-from .layout_items import resolve_layout_items
+
+from .template_loader import load_layout_from_template
+from .layout_items import resolve_layout_items, ReportLayoutItems
 
 
-def configure_layout_map(layout: QgsPrintLayout, extent_rect: QgsRectangle) -> None:
+def populate_layout_texts(items: ReportLayoutItems, title: str, author: str, date_hm: str) -> None:
+    """Populate title, author and date label items.
+
+    The function validates each item type before setting the text.
+    """
+    title_item = items.title_item
+    title_item.setText(title)
+    title_item.refresh()
+
+    author_item = items.author_item
+    author_item.setText(author or "")
+    author_item.refresh()
+
+    date_item = items.date_item
+    date_item.setText(date_hm)
+    date_item.refresh()
+
+
+def populate_layout_logo(items: ReportLayoutItems, logo_path: str | None) -> None:
+    """Set the logo picture item if a valid path is provided.
+
+    If ``logo_path`` is ``None`` or does not exist on the filesystem, the logo
+    item remains unchanged.
+    """
+    import os
+
+    logo_item = items.logo_item
+    if logo_path and os.path.exists(logo_path):
+        logo_item.setPicturePath(logo_path)
+        logo_item.refresh()
+
+
+def build_report_layout(
+    project: QgsProject,
+    template_path: str,
+    date_hm: str | None,
+    extent_rect: QgsRectangle,
+    logo_path: str | None,
+    title: str,
+    author: str,
+) -> QgsPrintLayout:
+    """Construct a QgsPrintLayout ready for GeoPDF export.
+
+    The function loads the QPT template, configures the map extent, injects
+    metadata texts and an optional logo.
+    """
+    # Load template and obtain a fresh layout instance
+    layout_name = f"GeoPDF_{date_hm}" if date_hm else "GeoPDF"
+    layout = load_layout_from_template(
+        project=project,
+        manager=project.layoutManager(),
+        template_path=template_path,
+        layout_name=layout_name,
+    )
+
+    # Resolve layout items
+    items = resolve_layout_items(layout)
+    # Configure map geometry
+    configure_layout_map(map_item=items.map_item, extent_rect=extent_rect)
+    layout.refresh()
+
+    # Populate dynamic text fields
+    populate_layout_texts(items, title=title, author=author, date_hm=date_hm or "")
+    # Populate optional logo
+    populate_layout_logo(items, logo_path=logo_path)
+    layout.refresh()
+    return layout
+
+
+def configure_layout_map(map_item: QgsLayoutItemMap, extent_rect: QgsRectangle) -> None:
     """Configure the map item in the layout from template.
 
     Adjusts the geographic extent to match the aspect ratio of the map frame
     defined in the QPT template, applying the corrected extent to the map item.
     """
-    items = resolve_layout_items(layout)
-    map_item = items.map_item
-
     logger.info(
         "Applying export extent to map item: xmin=%s ymin=%s xmax=%s ymax=%s",
         extent_rect.xMinimum(),
