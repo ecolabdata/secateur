@@ -1,199 +1,86 @@
 """
-Layout building utilities for GeoPDF export.
-
-This module provides functions for building and configuring the print layout
-for GeoPDF exports, separated from the main service logic.
+Layout building orchestrator for GeoPDF export.
 """
 
-import os
-
 from qgis.core import (
-    QgsLayoutItemLabel,
-    QgsLayoutItemMap,
-    QgsLayoutItemPicture,
     QgsMapLayer,
     QgsPrintLayout,
     QgsProject,
-    QgsReadWriteContext,
     QgsRectangle,
 )
-from qgis.PyQt.QtXml import QDomDocument
 
-from ...logger import logger
 from ...utils.formatting import timestamp_str
-from ...utils.layouts import clean_layouts, get_layout_item
+from ...utils.layouts import clean_layouts
+from .layout_populator import populate_layout_logo, populate_layout_texts
+from .map_configurator import configure_layout_map
+
+# Import extracted responsibilities
+from .template_loader import load_layout_from_template
 
 
-def load_layout_from_template(
-    project: QgsProject,
-    manager,
-    template_path: str,
-    layout_name: str,
-) -> QgsPrintLayout:
-    """Load a layout from a QPT template file."""
-    layout = QgsPrintLayout(project)
-    layout.initializeDefaults()
-    layout.setName(layout_name)
+class GeoPdfLayoutBuilder:
+    """Encapsulated builder for GeoPDF print layouts.
 
-    with open(template_path, encoding="utf-8") as f:
-        template_content = f.read()
+    Provides a clear, object‑oriented API with a single ``build`` method that
+    returns a fully prepared :class:`QgsPrintLayout` instance.
+    """
 
-    doc = QDomDocument()
-    success, error_message, error_line, error_column = doc.setContent(template_content)
+    def __init__(
+        self,
+        project: QgsProject,
+        template_path: str,
+        extent_rect: QgsRectangle,
+        title: str,
+        author: str,
+        date_hm: str | None = None,
+        logo_path: str | None = None,
+        basemap_layer: QgsMapLayer | None = None,
+    ) -> None:
+        self.project = project
+        self.template_path = template_path
+        self.extent_rect = extent_rect
+        self.title = title
+        self.author = author
+        self.logo_path = logo_path
+        self.basemap_layer = basemap_layer
+        self.manager = project.layoutManager()
+        # Ensure a timestamp is present for layout naming and date field
+        self.date_hm = date_hm or timestamp_str()
+        # Clean any existing temporary layouts
+        clean_layouts(self.manager)
 
-    if not success:
-        raise ValueError(f"Failed to parse QPT template (line={error_line}, column={error_column}): {error_message}")
+    def build(self) -> QgsPrintLayout:
+        """Create the layout, configure it and return the prepared object."""
+        layout_name = f"GeoPDF_{self.date_hm}"
+        layout = load_layout_from_template(
+            project=self.project,
+            manager=self.manager,
+            template_path=self.template_path,
+            layout_name=layout_name,
+        )
+        self._configure_map(layout)
+        layout.refresh()
+        self._populate_metadata(layout)
+        self._populate_logo(layout)
+        layout.refresh()
+        return layout
 
-    context = QgsReadWriteContext()
+    def _configure_map(self, layout: QgsPrintLayout) -> None:
+        """Configure the map item using the provided extent."""
+        configure_layout_map(layout=layout, extent_rect=self.extent_rect)
 
-    items, ok = layout.loadFromTemplate(doc, context)
+    def _populate_metadata(self, layout: QgsPrintLayout) -> None:
+        """Populate title, author and date text items."""
+        populate_layout_texts(
+            layout=layout,
+            title=self.title,
+            author=self.author,
+            date_hm=self.date_hm,
+        )
 
-    if not ok:
-        raise RuntimeError(f"Failed to load layout template: {template_path}")
-
-    manager.addLayout(layout)
-
-    return layout
-
-
-def configure_layout_map(
-    layout: QgsPrintLayout,
-    extent_rect: QgsRectangle,
-) -> None:
-    """Configure the map item in the layout from template."""
-
-    map_item = get_layout_item(layout, "Map 1")
-
-    if not isinstance(map_item, QgsLayoutItemMap):
-        raise TypeError(f"Layout item 'Map 1' is not a QgsLayoutItemMap, got {type(map_item)}")
-
-    logger.info(
-        "Applying export extent to map item: xmin=%s ymin=%s xmax=%s ymax=%s",
-        extent_rect.xMinimum(),
-        extent_rect.yMinimum(),
-        extent_rect.xMaximum(),
-        extent_rect.yMaximum(),
-    )
-
-    # ------------------------------------------------------------------
-    # IMPORTANT:
-    # The template map frame has its own aspect ratio.
-    # We must adapt the geographic extent to that ratio,
-    # otherwise QGIS expands the map unpredictably.
-    # ------------------------------------------------------------------
-
-    map_rect = map_item.rect()
-
-    frame_width = map_rect.width()
-    frame_height = map_rect.height()
-
-    if frame_height == 0:
-        raise ValueError("Map frame height is zero")
-
-    frame_ratio = frame_width / frame_height
-
-    extent_width = extent_rect.width()
-    extent_height = extent_rect.height()
-
-    if extent_height == 0:
-        raise ValueError("Extent height is zero")
-
-    extent_ratio = extent_width / extent_height
-
-    adjusted_extent = QgsRectangle(extent_rect)
-
-    # ------------------------------------------------------------------
-    # Adjust extent to frame aspect ratio
-    # ------------------------------------------------------------------
-
-    if extent_ratio > frame_ratio:
-        # extent too wide -> increase height
-        new_height = extent_width / frame_ratio
-        delta = (new_height - extent_height) / 2
-
-        adjusted_extent.setYMinimum(extent_rect.yMinimum() - delta)
-        adjusted_extent.setYMaximum(extent_rect.yMaximum() + delta)
-
-    else:
-        # extent too tall -> increase width
-        new_width = extent_height * frame_ratio
-        delta = (new_width - extent_width) / 2
-
-        adjusted_extent.setXMinimum(extent_rect.xMinimum() - delta)
-        adjusted_extent.setXMaximum(extent_rect.xMaximum() + delta)
-
-    logger.info(
-        "Adjusted extent: xmin=%s ymin=%s xmax=%s ymax=%s",
-        adjusted_extent.xMinimum(),
-        adjusted_extent.yMinimum(),
-        adjusted_extent.xMaximum(),
-        adjusted_extent.yMaximum(),
-    )
-
-    # ------------------------------------------------------------------
-    # Reset inherited template state
-    # ------------------------------------------------------------------
-
-    map_item.setAtlasDriven(False)
-
-    # Important with QPT templates
-    map_item.setKeepLayerSet(False)
-    map_item.setKeepLayerStyles(False)
-
-    # ------------------------------------------------------------------
-    # Apply corrected extent
-    # ------------------------------------------------------------------
-
-    map_item.zoomToExtent(adjusted_extent)
-
-    # Force redraw
-    map_item.refresh()
-    map_item.invalidateCache()
-    map_item.update()
-
-
-def populate_layout_texts(
-    layout: QgsPrintLayout,
-    title: str,
-    author: str,
-    date_hm: str,
-) -> None:
-    """Populate text items in the layout with dynamic content."""
-    # Title
-    title_item = get_layout_item(layout, "title")
-    if not isinstance(title_item, QgsLayoutItemLabel):
-        raise TypeError(f"Layout item 'title' is not a QgsLayoutItemLabel, got {type(title_item)}")
-    title_item.setText(title)
-    title_item.refresh()
-
-    # Author
-    author_item = get_layout_item(layout, "author")
-    if not isinstance(author_item, QgsLayoutItemLabel):
-        raise TypeError(f"Layout item 'author' is not a QgsLayoutItemLabel, got {type(author_item)}")
-    author_item.setText(author or "")
-    author_item.refresh()
-
-    # Date
-    date_item = get_layout_item(layout, "date")
-    if not isinstance(date_item, QgsLayoutItemLabel):
-        raise TypeError(f"Layout item 'date' is not a QgsLayoutItemLabel, got {type(date_item)}")
-    date_item.setText(date_hm)
-    date_item.refresh()
-
-
-def populate_layout_logo(
-    layout: QgsPrintLayout,
-    logo_path: str | None,
-) -> None:
-    """Populate the logo item in the layout with a dynamic logo."""
-    logo_item = get_layout_item(layout, "logo")
-
-    if not isinstance(logo_item, QgsLayoutItemPicture):
-        raise TypeError(f"Layout item 'logo' is not a QgsLayoutItemPicture, got {type(logo_item)}")
-
-    if logo_path and os.path.exists(logo_path):
-        logo_item.setPicturePath(logo_path)
-        logo_item.refresh()
+    def _populate_logo(self, layout: QgsPrintLayout) -> None:
+        """Populate the logo picture item if a path is provided."""
+        populate_layout_logo(layout=layout, logo_path=self.logo_path)
 
 
 def build_report_layout(
@@ -206,46 +93,18 @@ def build_report_layout(
     author: str,
     basemap_layer: QgsMapLayer | None,
 ) -> QgsPrintLayout:
-    """Create the layout from a QPT template and populate it with dynamic content.
+    """Legacy wrapper preserving the original function signature.
 
-    Returns the fully prepared ``QgsPrintLayout``.
+    Internally delegates to :class:`GeoPdfLayoutBuilder` for the actual work.
     """
-    manager = project.layoutManager()
-
-    clean_layouts(manager)
-
-    # Ensure we have a timestamp string for layout naming and date field
-    if date_hm is None:
-        date_hm = timestamp_str()
-    layout_name = f"GeoPDF_{date_hm}"
-
-    layout = load_layout_from_template(
+    builder = GeoPdfLayoutBuilder(
         project=project,
-        manager=manager,
         template_path=template_path,
-        layout_name=layout_name,
-    )
-
-    configure_layout_map(
-        layout=layout,
         extent_rect=extent_rect,
-    )
-
-    # Refresh layout to ensure map changes are applied
-    layout.refresh()
-
-    populate_layout_texts(
-        layout=layout,
         title=title,
         author=author,
         date_hm=date_hm,
-    )
-
-    populate_layout_logo(
-        layout=layout,
         logo_path=logo_path,
+        basemap_layer=basemap_layer,
     )
-
-    layout.refresh()
-
-    return layout
+    return builder.build()
