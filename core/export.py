@@ -242,7 +242,7 @@ def export_results_to_pdf(
                 layer_names=layer_names,
                 logo_path=logo_path,
                 title=title,
-                author=author
+                author=author,
             )
         except Exception as e:
             logger.warning(f"External legend export failed: {e}")
