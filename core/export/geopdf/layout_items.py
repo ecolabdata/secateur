@@ -4,8 +4,6 @@ Layout items utility for GeoPDF export.
 This module provides helper functions for handling layout items in GeoPDF exports.
 """
 
-from typing import List, Optional
-
 from qgis.core import QgsLayoutItem, QgsPrintLayout
 
 

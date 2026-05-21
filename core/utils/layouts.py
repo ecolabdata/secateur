@@ -23,3 +23,13 @@ def create_layout(project, manager, name):
     layout.setName(name)
     manager.addLayout(layout)
     return layout
+
+
+def get_layout_item(layout: QgsPrintLayout, item_id: str):
+    """Get a layout item by its ID, raising an error if not found."""
+    item = layout.itemById(item_id)
+
+    if item is None:
+        raise ValueError(f"Layout item '{item_id}' not found")
+
+    return item

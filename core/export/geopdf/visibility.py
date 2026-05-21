@@ -5,20 +5,21 @@ This module provides helper functions for managing layer visibility
 during GeoPDF exports.
 """
 
-from typing import List, Optional
 from contextlib import contextmanager
 
-from qgis.core import QgsMapLayer, QgsProject, QgsProcessingFeedback
-from qgis.PyQt.QtWidgets import QApplication
+from qgis.core import QgsMapLayer, QgsProcessingFeedback
 
-from...logger import logger
+from ...logger import logger
 from ...utils.rendering import is_simple_fill, set_layer_opacity
-from...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
+from ...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
 
 
 @contextmanager
 def temporary_visible_layers(
-    root, result_layers: List[QgsMapLayer], basemap_layer: QgsMapLayer | None, feedback: QgsProcessingFeedback | None = None
+    root,
+    result_layers: list[QgsMapLayer],
+    basemap_layer: QgsMapLayer | None,
+    feedback: QgsProcessingFeedback | None = None,
 ):
     """Temporarily hide all layers then make *result_layers* (and optional *basemap_layer*) visible.
 
@@ -29,6 +30,7 @@ def temporary_visible_layers(
     with clear_all_visibility(root):
         # Update feedback after making layers visible
         from ...utils.feedback import update_feedback
+
         update_feedback(feedback, 20, "Couches de résultat rendues visibles")
 
         def _make_visible(layer):

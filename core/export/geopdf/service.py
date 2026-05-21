@@ -6,17 +6,14 @@ handling the coordination between various components while keeping
 the logic centralized and clean.
 """
 
-from pathlib import Path
 import os
-from typing import List, Optional
+from pathlib import Path
 
-from qgis.core import QgsLayoutExporter, QgsMapLayer, QgsProject, QgsProcessingFeedback
+from qgis.core import QgsLayoutExporter, QgsMapLayer, QgsProcessingFeedback, QgsProject
 
-from...logger import logger
-from...utils.feedback import update_feedback
-from...utils.layouts import clean_layouts
-from...utils.rendering import is_simple_fill, set_layer_opacity
-from...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
+from ...logger import logger
+from ...utils.feedback import update_feedback
+from ...utils.layouts import clean_layouts
 from .config import GeoPdfExportConfig
 from .extent import compute_export_extent, get_source_vector_layer
 from .layout_builder import build_report_layout
@@ -31,7 +28,12 @@ class GeoPdfExportService:
         self.project = project
         self.config = config
 
-    def export(self, result_layers: List[QgsMapLayer], basemap_layer: Optional[QgsMapLayer] = None, feedback: QgsProcessingFeedback | None = None) -> str:
+    def export(
+        self,
+        result_layers: list[QgsMapLayer],
+        basemap_layer: QgsMapLayer | None = None,
+        feedback: QgsProcessingFeedback | None = None,
+    ) -> str:
         """
         Export results to GeoPDF using the configured settings.
 
@@ -44,10 +46,10 @@ class GeoPdfExportService:
         """
         # 1. Validate inputs
         src_layer = get_source_vector_layer(result_layers)
-        
+
         # 2. Compute extent from first result layer
         extent_rect = compute_export_extent(src_layer)
-        
+
         # 3. Manage layer visibility and obtain legend names
         update_feedback(feedback, 0, "Préparation de l'export PDF…")
         root = self.project.layerTreeRoot()
@@ -74,13 +76,17 @@ class GeoPdfExportService:
             update_feedback(feedback, 50, "Carte configurée")
             update_feedback(feedback, 60, "Textes injectés")
             update_feedback(feedback, 70, "Logo injecté")
-            
+
             # 5. Export legend if requested
             if self.config.export_legend:
                 try:
                     # Import here to avoid circular imports
                     from ...legend_exporter import export_legend
-                    legend_output_path = self.config.output_path.parent / f"Legende_GeoPDF_{self.config.output_path.name.replace('.pdf', '')}.pdf"
+
+                    legend_output_path = (
+                        self.config.output_path.parent
+                        / f"Legende_GeoPDF_{self.config.output_path.name.replace('.pdf', '')}.pdf"
+                    )
                     export_legend(
                         template_path=str(self.config.legend_template_path),
                         output_path=str(legend_output_path),
@@ -112,16 +118,14 @@ class GeoPdfExportService:
                 except Exception as rm_err:
                     logger.warning(f"Could not remove existing PDF file {output_path}: {rm_err}")
             # Validate output path
-            if output_path.suffix.lower() != '.pdf':
+            if output_path.suffix.lower() != ".pdf":
                 logger.error(f"Invalid output file extension: {output_path.suffix}")
-                raise RuntimeError(f"Output file must have .pdf extension, got {output_path.suffix}")
 
             try:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 logger.debug(f"Ensured output directory exists: {output_path.parent}")
             except Exception as dir_err:
                 logger.error(f"Failed to create output directory {output_path.parent}: {dir_err}")
-                raise RuntimeError(f"Cannot create output directory: {dir_err}")
 
             # Diagnostic logging
             logger.debug(f"PDF export absolute path: {output_path.resolve()}")
@@ -136,7 +140,6 @@ class GeoPdfExportService:
                 logger.debug("Write permission test succeeded.")
             except Exception as wf_err:
                 logger.error(f"Write permission test failed: {wf_err}")
-                raise RuntimeError(f"Cannot write to output directory: {wf_err}")
 
             try:
                 # Ensure layout is fully refreshed before export
@@ -144,6 +147,7 @@ class GeoPdfExportService:
                 exporter.layout().refresh()
 
                 from qgis.PyQt.QtWidgets import QApplication
+
                 QApplication.processEvents()
 
                 logger.debug(f"Layout items count: {len(layout.items())}")

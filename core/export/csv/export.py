@@ -1,6 +1,5 @@
 import csv
 import os
-from contextlib import contextmanager
 
 from qgis.core import (
     QgsMapLayer,
@@ -8,8 +7,9 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from ...utils.formatting import _format_value, _safe_filename
 from ...utils.layers import iterate_layers
-from ...utils.formatting import _safe_filename, _format_value
+
 
 def export_results_to_csv(
     result_layers: list[QgsMapLayer],

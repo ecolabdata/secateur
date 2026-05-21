@@ -6,12 +6,8 @@ for GeoPDF exports, separated from the main service logic.
 """
 
 import os
-from contextlib import contextmanager
-from typing import List, Optional
-from...utils.formatting import timestamp_str
 
 from qgis.core import (
-    QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
@@ -20,70 +16,12 @@ from qgis.core import (
     QgsProject,
     QgsReadWriteContext,
     QgsRectangle,
-    QgsVectorLayer,
 )
 from qgis.PyQt.QtXml import QDomDocument
 
-from...logger import logger
-from...utils.layouts import clean_layouts
-from...utils.rendering import is_simple_fill, set_layer_opacity
-from...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
-from .extent import compute_export_extent, get_source_vector_layer
-
-
-def resolve_output_path(output_path: str) -> tuple[str, str]:
-    """Resolve the final PDF path and a timestamp string.
-
-    If *output_path* is a directory, a filename ``Rapport_cartographique_<timestamp>.pdf``
-    is created inside it. Otherwise *output_path* is returned unchanged.
-    """
-    try:
-        if os.path.isdir(output_path):
-            from...utils.formatting import timestamp_str
-            date_hm = timestamp_str()
-            filename = f"Rapport_cartographique_{date_hm}.pdf"
-            full_path = os.path.join(output_path, filename)
-        else:
-            full_path = output_path
-            from...utils.formatting import timestamp_str
-            date_hm = timestamp_str()
-        return full_path, date_hm
-    except Exception as e:
-        logger.error(f"Failed to resolve output path '{output_path}': {e}")
-        raise
-
-@contextmanager
-def temporary_visible_layers(
-    root, result_layers: List[QgsMapLayer], basemap_layer: QgsMapLayer | None
-):
-    """Temporarily hide all layers then make *result_layers* (and optional *basemap_layer*) visible.
-
-    Yields the list of layer names used for the legend.
-    """
-    visible_count = 0
-    # Hide everything via the existing ``clear_all_visibility`` helper
-    with clear_all_visibility(root):
-
-        def _make_visible(layer):
-            nonlocal visible_count
-            try:
-                if is_simple_fill(layer):
-                    set_layer_opacity(layer, opacity=0.8)
-                visible_count += int(set_layer_and_parents_visible(root, layer))
-            except Exception as exc:
-                logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
-
-        for layer in result_layers:
-            _make_visible(layer)
-        if visible_count == 0:
-            logger.warning("temporary_visible_layers: no result layers could be made visible")
-        if basemap_layer is not None:
-            try:
-                visible_count += int(set_layer_and_parents_visible(root, basemap_layer))
-            except Exception as exc:
-                logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
-        layer_names = [lyr.name() for lyr in result_layers]
-        yield layer_names
+from ...logger import logger
+from ...utils.formatting import timestamp_str
+from ...utils.layouts import clean_layouts, get_layout_item
 
 
 def load_layout_from_template(
@@ -116,16 +54,6 @@ def load_layout_from_template(
     manager.addLayout(layout)
 
     return layout
-
-
-def get_layout_item(layout: QgsPrintLayout, item_id: str):
-    """Get a layout item by its ID, raising an error if not found."""
-    item = layout.itemById(item_id)
-
-    if item is None:
-        raise ValueError(f"Layout item '{item_id}' not found")
-
-    return item
 
 
 def configure_layout_map(
@@ -255,7 +183,7 @@ def populate_layout_texts(
 
 def populate_layout_logo(
     layout: QgsPrintLayout,
-    logo_path: Optional[str],
+    logo_path: str | None,
 ) -> None:
     """Populate the logo item in the layout with a dynamic logo."""
     logo_item = get_layout_item(layout, "logo")
@@ -271,9 +199,9 @@ def populate_layout_logo(
 def build_report_layout(
     project: QgsProject,
     template_path: str,
-    date_hm: Optional[str],
+    date_hm: str | None,
     extent_rect: QgsRectangle,
-    logo_path: Optional[str],
+    logo_path: str | None,
     title: str,
     author: str,
     basemap_layer: QgsMapLayer | None,

@@ -7,9 +7,6 @@ with clear separation of concerns and improved maintainability.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
-from qgis.core import QgsMapLayer, QgsProject
 
 
 @dataclass(slots=True)
@@ -23,7 +20,7 @@ class GeoPdfExportConfig:
     title: str
     author: str
 
-    logo_path: Optional[Path] = None
+    logo_path: Path | None = None
 
     dpi: int = 300
 
