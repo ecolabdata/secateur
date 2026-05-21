@@ -1,5 +1,6 @@
 import csv
 import os
+from contextlib import contextmanager
 
 from qgis.core import (
     QgsLayoutExporter,
@@ -7,6 +8,7 @@ from qgis.core import (
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsMapLayer,
+    QgsPrintLayout,
     QgsProcessingFeedback,
     QgsProject,
     QgsRectangle,
@@ -38,6 +40,14 @@ from .utils import (
     temporary_visibility,
     timestamp_str,
 )
+
+
+def update_feedback(feedback: QgsProcessingFeedback | None, progress: int, message: str) -> None:
+    """Convenient helper to update ``feedback`` if it is provided."""
+    if feedback:
+        feedback.setProgress(progress)
+        feedback.pushInfo(message)
+
 
 # ============================================================
 # EXPORT CSV
@@ -91,6 +101,161 @@ def export_results_to_csv(
 # ============================================================
 
 
+def resolve_output_path(output_path: str) -> tuple[str, str]:
+    """Resolve the final PDF path and a timestamp string.
+
+    If *output_path* is a directory, a filename ``Rapport_cartographique_<timestamp>.pdf``
+    is created inside it. Otherwise *output_path* is returned unchanged.
+    """
+    try:
+        if os.path.isdir(output_path):
+            date_hm = timestamp_str()
+            filename = f"Rapport_cartographique_{date_hm}.pdf"
+            full_path = os.path.join(output_path, filename)
+        else:
+            full_path = output_path
+            date_hm = timestamp_str()
+        return full_path, date_hm
+    except Exception as e:
+        logger.error(f"Failed to resolve output path '{output_path}': {e}")
+        raise
+
+
+def get_source_vector_layer(result_layers: list[QgsMapLayer]) -> QgsVectorLayer:
+    """Validate *result_layers* for PDF export.
+
+    Raises ``ValueError`` if the list is empty and ``TypeError`` if the first
+    element is not a ``QgsVectorLayer``.
+    """
+    if not result_layers:
+        raise ValueError("result_layers must contain at least one layer for extent calculation")
+
+    layer = result_layers[0]
+
+    if not isinstance(layer, QgsVectorLayer):
+        raise TypeError("First result layer must be a vector layer")
+
+    return layer
+
+
+def compute_export_extent(layer: QgsVectorLayer) -> QgsRectangle:
+    """Return a buffered ``QgsRectangle`` covering *layer*.
+
+    The rectangle is enlarged by 5 % of its width and height.
+    """
+    bbox = layer.extent()
+    bbox.grow(bbox.width() * 0.05 + bbox.height() * 0.05)
+    return QgsRectangle(bbox.xMinimum(), bbox.yMinimum(), bbox.xMaximum(), bbox.yMaximum())
+
+
+@contextmanager
+def temporary_visible_layers(
+    root, result_layers: list[QgsMapLayer], basemap_layer: QgsMapLayer | None, feedback: QgsProcessingFeedback | None
+):
+    """Temporarily hide all layers then make *result_layers* (and optional *basemap_layer*) visible.
+
+    Yields the list of layer names used for the legend.
+    """
+    visible_count = 0
+    # Hide everything via the existing ``temporary_visibility`` helper
+    with temporary_visibility(root):
+
+        def _make_visible(layer):
+            nonlocal visible_count
+            try:
+                if is_simple_fill(layer):
+                    set_layer_opacity(layer, opacity=0.8)
+                visible_count += int(set_layer_and_parents_visible(root, layer))
+            except Exception as exc:
+                logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
+
+        iterate_layers(result_layers, _make_visible, feedback)
+        if visible_count == 0:
+            logger.warning("temporary_visible_layers: no result layers could be made visible")
+        if basemap_layer is not None:
+            try:
+                visible_count += int(set_layer_and_parents_visible(root, basemap_layer))
+            except Exception as exc:
+                logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
+        layer_names = [lyr.name() for lyr in result_layers]
+        update_feedback(feedback, 20, "Couches de résultat rendues visibles")
+        yield layer_names
+
+
+def create_map_item(layout: QgsPrintLayout, extent_rect: QgsRectangle) -> QgsLayoutItemMap:
+    """Create and configure the map item for the layout.
+
+    Returns the configured ``QgsLayoutItemMap`` instance.
+    """
+    map_item = QgsLayoutItemMap(layout)
+    map_item.setRect(20, 20, 20, 20)
+    map_item.setExtent(extent_rect)
+    map_item.attemptMove(QgsLayoutPoint(5, 26, QgsUnitTypes.LayoutMillimeters))
+    map_item.attemptResize(QgsLayoutSize(240, 180, QgsUnitTypes.LayoutMillimeters))
+    layout.addLayoutItem(map_item)
+    map_item.refresh()
+    return map_item
+
+
+def add_layout_decorations(
+    layout,
+    map_item: QgsLayoutItemMap,
+    extent_rect: QgsRectangle,
+    logo_path: str,
+    title: str,
+    author: str,
+    basemap_layer: QgsMapLayer | None,
+    feedback: QgsProcessingFeedback | None,
+):
+    """Add title, frame, scale bar, north arrow, logo and credits to the layout."""
+    # Title and surrounding frame
+    add_title(layout, title)
+    _add_frame_title(layout, largeur_page=295.0)
+    if feedback:
+        update_feedback(feedback, 60, "Titre et cadre ajoutés")
+    # Decorations
+    add_scale(layout, map_item, extent_rect)
+    add_north_arrow(layout)
+    add_logo(layout, logo_path)
+    if author:
+        add_copyright(layout, author=author)
+    else:
+        add_copyright(layout)
+    if basemap_layer is not None:
+        add_map_credits(layout, f"© {basemap_layer.name()}")
+    if feedback:
+        update_feedback(feedback, 70, "Légende construite")
+
+
+def build_report_layout(
+    project: QgsProject,
+    date_hm: str,
+    extent_rect: QgsRectangle,
+    logo_path: str,
+    title: str,
+    author: str,
+    basemap_layer: QgsMapLayer | None,
+    feedback: QgsProcessingFeedback | None,
+) -> QgsPrintLayout:
+    """Create the layout and populate it with map item and decorations.
+
+    Returns the fully prepared ``QgsPrintLayout``.
+    """
+    manager = project.layoutManager()
+    clean_layouts(manager)
+    layout_name = f"GeoPDF_{date_hm}"
+    layout = create_layout(project, manager, layout_name)
+    if feedback:
+        update_feedback(feedback, 40, "Mise en page initialisée")
+    # Map item
+    map_item = create_map_item(layout, extent_rect)
+    if feedback:
+        update_feedback(feedback, 50, "Élément carte ajouté")
+    # Decorations and title/frame
+    add_layout_decorations(layout, map_item, extent_rect, logo_path, title, author, basemap_layer, feedback)
+    return layout
+
+
 def export_results_to_pdf(
     result_layers: list[QgsMapLayer],
     output_path: str,
@@ -100,141 +265,32 @@ def export_results_to_pdf(
     author: str = "",
     title: str = "Résultats Secateur",
 ):
-    """Export a PDF (GeoPDF) report for the given result layers.
-
-    Uses helper functions from ``core.geopdf_utils`` and logs actions via the
-    plugin-wide QGIS logger.
-    """
-
-    # Resolve output path – create a dated filename if a directory is supplied
-    try:
-        if os.path.isdir(output_path):
-            date_hm = timestamp_str()
-            filename = f"Rapport_cartographique_{date_hm}.pdf"
-            full_path = os.path.join(output_path, filename)
-        else:
-            full_path = output_path
-            date_hm = timestamp_str()
-    except Exception as e:
-        logger.error(f"Failed to resolve output path '{output_path}': {e}")
-        raise
-
-    if not result_layers:
-        raise ValueError("result_layers must contain at least one layer for extent calculation")
-
-    # Compute map extent from the first layer (add 5 % buffer)
-    src_layer = result_layers[0]
-
-    if not isinstance(src_layer, QgsVectorLayer):
-        raise TypeError("First result layer must be a vector layer")
-
-    bbox = src_layer.extent()
-    bbox.grow(bbox.width() * 0.05 + bbox.height() * 0.05)
-    rec_emprise = [bbox.xMinimum(), bbox.yMinimum(), bbox.xMaximum(), bbox.yMaximum()]
-    extent_rect = QgsRectangle(*rec_emprise)
-
-    # -----------------------------------------------------------------
-    # Hide all layers individually, then enable only result_layers
-    # -----------------------------------------------------------------
+    """Orchestrate PDF export using well‑separated helper functions."""
+    # 1. Resolve output location
+    full_path, date_hm = resolve_output_path(output_path)
+    # 2. Validate inputs
+    src_layer = get_source_vector_layer(result_layers)
+    # 3. Compute extent from first result layer
+    extent_rect = compute_export_extent(src_layer)
+    # 4. Manage layer visibility and obtain legend names
     root = QgsProject.instance().layerTreeRoot()
-    # Hide all layers using temporary_visibility context manager; no restoration
-    with temporary_visibility(root):
-        visible_count = 0
-
-        def _make_visible(layer):
-            """Callback for :func:`iterate_layers` to set opacity and visibility.
-
-            Updates the outer ``visible_count`` variable.
-            """
-            nonlocal visible_count
-            try:
-                if is_simple_fill(layer):
-                    set_layer_opacity(layer, opacity=0.8)
-                visible_count += int(set_layer_and_parents_visible(root, layer))
-            except Exception as exc:
-                logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
-                # continue – a single failure should not abort the whole export
-
-        iterate_layers(result_layers, _make_visible, feedback)
-
-        if visible_count == 0:
-            logger.warning("export_results_to_pdf called with result_layers but none could be made visible")
-
-        # If a basemap layer is provided, make it visible as well
-        if basemap_layer is not None:
-            try:
-                visible_count += int(set_layer_and_parents_visible(root, basemap_layer))
-            except Exception as exc:
-                logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
-
-        # Layer names for the legend
-        layer_names = [lyr.name() for lyr in result_layers]
-
-        # Feedback – initialise progress
-        if feedback:
-            feedback.setProgress(0)
-            feedback.pushInfo("Préparation de l'export PDF…")
-
-        # ---------------------------------------------------------------------
-        # 1. Make result and basemap layers visible
-        # ---------------------------------------------------------------------
-        # (Visibility already handled earlier; update progress)
-        if feedback:
-            feedback.setProgress(20)
-            feedback.pushInfo("Couches de résultat rendues visibles")
-
-        # ---------------------------------------------------------------------
-        # 2. Build layout using geopdf_utils helpers
-        # ---------------------------------------------------------------------
+    with temporary_visible_layers(root, result_layers, basemap_layer, feedback) as layer_names:
+        # 5. Initialise feedback
+        update_feedback(feedback, 0, "Préparation de l'export PDF…")
+        # 6. Build layout
         project = QgsProject.instance()
-        manager = project.layoutManager()
-        clean_layouts(manager)
-        layout_name = f"GeoPDF_{date_hm}"
-        layout = create_layout(project, manager, layout_name)
-
-        if feedback:
-            feedback.setProgress(40)
-            feedback.pushInfo("Mise en page initialisée")
-
-        # Map item
-        map_item = QgsLayoutItemMap(layout)
-        map_item.setRect(20, 20, 20, 20)
-        map_item.setExtent(extent_rect)
-        map_item.attemptMove(QgsLayoutPoint(5, 26, QgsUnitTypes.LayoutMillimeters))
-        map_item.attemptResize(QgsLayoutSize(240, 180, QgsUnitTypes.LayoutMillimeters))
-        layout.addLayoutItem(map_item)
-        map_item.refresh()
-
-        if feedback:
-            feedback.setProgress(50)
-            feedback.pushInfo("Élément carte ajouté")
-
-        # Title and surrounding frame
-        add_title(layout, title)
-        _add_frame_title(layout, largeur_page=295.0)
-
-        if feedback:
-            feedback.setProgress(60)
-            feedback.pushInfo("Titre et cadre ajoutés")
-
-        # Scale bar, north arrow, logo, copyright and credits
-        add_scale(layout, map_item, extent_rect)
-        add_north_arrow(layout)
-        add_logo(layout, logo_path)
-        if author:
-            add_copyright(layout, author=author)
-        else:
-            add_copyright(layout)
-        if basemap_layer is not None:
-            add_map_credits(layout, f"© {basemap_layer.name()}")
-
-        if feedback:
-            feedback.setProgress(70)
-            feedback.pushInfo("Légende construite")
-
-        # Export legend separately using Atlas
+        layout = build_report_layout(
+            project,
+            date_hm,
+            extent_rect,
+            logo_path,
+            title,
+            author,
+            basemap_layer,
+            feedback,
+        )
+        # 7. Export legend
         try:
-            # Use the new Atlas-based legend exporter
             legend_output_path = os.path.join(os.path.dirname(full_path), f"Legende_GeoPDF_{date_hm}.pdf")
             export_legend(
                 template_path=os.path.join(os.path.dirname(__file__), "../resources/legend_layout.qpt"),
@@ -246,12 +302,8 @@ def export_results_to_pdf(
             )
         except Exception as e:
             logger.warning(f"External legend export failed: {e}")
-
-        if feedback:
-            feedback.setProgress(80)
-            feedback.pushInfo("Export du GeoPDF en cours")
-
-        # Export to GeoPDF
+        # 8. Export GeoPDF
+        update_feedback(feedback, 80, "Export du GeoPDF en cours")
         exporter = QgsLayoutExporter(layout)
         exporter.layout().refresh()
         settings = QgsLayoutExporter.PdfExportSettings()
@@ -260,28 +312,18 @@ def export_results_to_pdf(
         settings.forceVectorOutput = True
         settings.exportLayersAsVectors = True
         settings.exportMetadata = True
-
         try:
-            # Try to process events to avoid deadlocks
             from qgis.PyQt.QtWidgets import QApplication
 
             QApplication.processEvents()
-
             exporter.exportToPdf(full_path, settings)
-
-            # Process events again after export
             QApplication.processEvents()
-
-            if feedback:
-                feedback.setProgress(100)
-                feedback.pushInfo("Export terminé")
-
+            update_feedback(feedback, 100, "Export terminé")
         except Exception as e:
             logger.error(f"GeoPDF export failed: {e}")
             raise RuntimeError(f"GeoPDF export failed: {e}") from e
-
-    # Clean up temporary layouts
+    # Clean up any temporary layouts created during the context
+    manager = QgsProject.instance().layoutManager()
     clean_layouts(manager)
-
     logger.info(f"GeoPDF exported to: {full_path}")
     return full_path
