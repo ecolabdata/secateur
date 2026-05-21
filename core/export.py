@@ -19,17 +19,11 @@ from qgis.PyQt.QtXml import QDomDocument
 
 from .legend_exporter import export_legend
 from .logger import logger
-from .utils import (
-    _format_value,
-    _safe_filename,
-    clean_layouts,
-    is_simple_fill,
-    iterate_layers,
-    set_layer_and_parents_visible,
-    set_layer_opacity,
-    temporary_visibility,
-    timestamp_str,
-)
+from .utils.formatting import _format_value, _safe_filename, timestamp_str
+from .utils.layers import iterate_layers
+from .utils.layouts import clean_layouts
+from .utils.rendering import is_simple_fill, set_layer_opacity
+from .utils.visibility import clear_all_visibility, set_layer_and_parents_visible
 
 
 def update_feedback(feedback: QgsProcessingFeedback | None, progress: int, message: str) -> None:
@@ -147,8 +141,8 @@ def temporary_visible_layers(
     Yields the list of layer names used for the legend.
     """
     visible_count = 0
-    # Hide everything via the existing ``temporary_visibility`` helper
-    with temporary_visibility(root):
+    # Hide everything via the existing ``clear_all_visibility`` helper
+    with clear_all_visibility(root):
 
         def _make_visible(layer):
             nonlocal visible_count

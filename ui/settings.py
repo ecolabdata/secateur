@@ -14,7 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..core.utils import get_icon_path
+from ..core.utils.path import get_icon_path
 
 
 class SettingsManager:

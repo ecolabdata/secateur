@@ -3,7 +3,7 @@ from contextlib import suppress
 import processing  # type: ignore
 from qgis.core import QgsProcessingContext, QgsProcessingFeedback, QgsProject, QgsRasterLayer, QgsVectorLayer
 
-from .utils import filter_out_source, get_results_group
+from .utils.layers import filter_out_source, get_results_group
 
 # ──────────────────────────────────────────────
 #  LAYERS
