@@ -10,7 +10,6 @@ from qgis.core import (
 )
 
 from ...utils.formatting import timestamp_str
-from ...utils.layouts import clean_layouts
 from .layout_populator import populate_layout_logo, populate_layout_texts
 from .map_configurator import configure_layout_map
 
@@ -46,8 +45,6 @@ class GeoPdfLayoutBuilder:
         self.manager = project.layoutManager()
         # Ensure a timestamp is present for layout naming and date field
         self.date_hm = date_hm or timestamp_str()
-        # Clean any existing temporary layouts
-        clean_layouts(self.manager)
 
     def build(self) -> QgsPrintLayout:
         """Create the layout, configure it and return the prepared object."""

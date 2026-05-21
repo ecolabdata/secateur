@@ -2,11 +2,10 @@
 Map configurator utilities for GeoPDF export.
 """
 
-import logging
-from qgis.core import QgsPrintLayout, QgsRectangle, QgsLayoutItemMap
+from qgis.core import QgsLayoutItemMap, QgsPrintLayout, QgsRectangle
 
-from ...utils.layouts import get_layout_item
 from ...logger import logger
+from ...utils.layouts import get_layout_item
 
 
 def configure_layout_map(layout: QgsPrintLayout, extent_rect: QgsRectangle) -> None:
@@ -18,9 +17,7 @@ def configure_layout_map(layout: QgsPrintLayout, extent_rect: QgsRectangle) -> N
     map_item = get_layout_item(layout, "Map 1")
 
     if not isinstance(map_item, QgsLayoutItemMap):
-        raise TypeError(
-            f"Layout item 'Map 1' is not a QgsLayoutItemMap, got {type(map_item)}"
-        )
+        raise TypeError(f"Layout item 'Map 1' is not a QgsLayoutItemMap, got {type(map_item)}")
 
     logger.info(
         "Applying export extent to map item: xmin=%s ymin=%s xmax=%s ymax=%s",

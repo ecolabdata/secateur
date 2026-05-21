@@ -6,7 +6,6 @@ import os
 
 from qgis.core import QgsLayoutItemLabel, QgsLayoutItemPicture, QgsPrintLayout
 
-from ...logger import logger
 from ...utils.layouts import get_layout_item
 
 
@@ -23,27 +22,21 @@ def populate_layout_texts(
     # Title
     title_item = get_layout_item(layout, "title")
     if not isinstance(title_item, QgsLayoutItemLabel):
-        raise TypeError(
-            f"Layout item 'title' is not a QgsLayoutItemLabel, got {type(title_item)}"
-        )
+        raise TypeError(f"Layout item 'title' is not a QgsLayoutItemLabel, got {type(title_item)}")
     title_item.setText(title)
     title_item.refresh()
 
     # Author
     author_item = get_layout_item(layout, "author")
     if not isinstance(author_item, QgsLayoutItemLabel):
-        raise TypeError(
-            f"Layout item 'author' is not a QgsLayoutItemLabel, got {type(author_item)}"
-        )
+        raise TypeError(f"Layout item 'author' is not a QgsLayoutItemLabel, got {type(author_item)}")
     author_item.setText(author or "")
     author_item.refresh()
 
     # Date
     date_item = get_layout_item(layout, "date")
     if not isinstance(date_item, QgsLayoutItemLabel):
-        raise TypeError(
-            f"Layout item 'date' is not a QgsLayoutItemLabel, got {type(date_item)}"
-        )
+        raise TypeError(f"Layout item 'date' is not a QgsLayoutItemLabel, got {type(date_item)}")
     date_item.setText(date_hm)
     date_item.refresh()
 
@@ -60,9 +53,7 @@ def populate_layout_logo(
     logo_item = get_layout_item(layout, "logo")
 
     if not isinstance(logo_item, QgsLayoutItemPicture):
-        raise TypeError(
-            f"Layout item 'logo' is not a QgsLayoutItemPicture, got {type(logo_item)}"
-        )
+        raise TypeError(f"Layout item 'logo' is not a QgsLayoutItemPicture, got {type(logo_item)}")
 
     if logo_path and os.path.exists(logo_path):
         logo_item.setPicturePath(logo_path)

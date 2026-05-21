@@ -5,8 +5,6 @@ Template loader utilities for GeoPDF export.
 from qgis.core import QgsPrintLayout, QgsProject, QgsReadWriteContext
 from qgis.PyQt.QtXml import QDomDocument
 
-from ...logger import logger
-
 
 def load_layout_from_template(
     project: QgsProject,
@@ -26,9 +24,7 @@ def load_layout_from_template(
     success, error_message, error_line, error_column = doc.setContent(template_content)
 
     if not success:
-        raise ValueError(
-            f"Failed to parse QPT template (line={error_line}, column={error_column}): {error_message}"
-        )
+        raise ValueError(f"Failed to parse QPT template (line={error_line}, column={error_column}): {error_message}")
 
     context = QgsReadWriteContext()
 

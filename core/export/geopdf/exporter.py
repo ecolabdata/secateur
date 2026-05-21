@@ -10,7 +10,6 @@ from pathlib import Path
 from qgis.core import QgsLayout, QgsLayoutExporter
 
 from ...logger import logger
-from ...utils.feedback import update_feedback
 from ...utils.layouts import clean_layouts
 
 
@@ -62,6 +61,7 @@ class GeoPdfExporter:
 
             # Process Qt events
             from qgis.PyQt.QtWidgets import QApplication
+
             QApplication.processEvents()
 
             if len(layout.items()) == 0:
@@ -78,9 +78,7 @@ class GeoPdfExporter:
             if result != QgsLayoutExporter.Success:
                 error_msg = exporter.errorMessage() if hasattr(exporter, "errorMessage") else ""
                 error_file = exporter.errorFile() if hasattr(exporter, "errorFile") else ""
-                raise RuntimeError(
-                    f"PDF export failed with code: {result}. Details: {error_msg} File: {error_file}"
-                )
+                raise RuntimeError(f"PDF export failed with code: {result}. Details: {error_msg} File: {error_file}")
 
             logger.info(f"GeoPDF exported to: {output_path}")
             return output_path
