@@ -211,8 +211,7 @@ def add_layout_decorations(
     # Title and surrounding frame
     add_title(layout, title)
     _add_frame_title(layout, largeur_page=295.0)
-    if feedback:
-        update_feedback(feedback, 60, "Titre et cadre ajoutés")
+    update_feedback(feedback, 60, "Titre et cadre ajoutés")
     # Decorations
     add_scale(layout, map_item, extent_rect)
     add_north_arrow(layout)
@@ -223,8 +222,7 @@ def add_layout_decorations(
         add_copyright(layout)
     if basemap_layer is not None:
         add_map_credits(layout, f"© {basemap_layer.name()}")
-    if feedback:
-        update_feedback(feedback, 70, "Légende construite")
+    update_feedback(feedback, 70, "Légende construite")
 
 
 def build_report_layout(
@@ -245,12 +243,10 @@ def build_report_layout(
     clean_layouts(manager)
     layout_name = f"GeoPDF_{date_hm}"
     layout = create_layout(project, manager, layout_name)
-    if feedback:
-        update_feedback(feedback, 40, "Mise en page initialisée")
+    update_feedback(feedback, 40, "Mise en page initialisée")
     # Map item
     map_item = create_map_item(layout, extent_rect)
-    if feedback:
-        update_feedback(feedback, 50, "Élément carte ajouté")
+    update_feedback(feedback, 50, "Élément carte ajouté")
     # Decorations and title/frame
     add_layout_decorations(layout, map_item, extent_rect, logo_path, title, author, basemap_layer, feedback)
     return layout
