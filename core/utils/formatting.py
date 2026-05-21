@@ -1,4 +1,4 @@
-"""Formatting utilities extracted from core.utils.
+"""Formatting utilities extracted from...utils.
 Provides:
 - timestamp_str: current datetime formatted for filenames.
 - _format_value: safely format QGIS attribute values.

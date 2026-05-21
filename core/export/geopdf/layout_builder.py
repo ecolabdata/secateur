@@ -1,6 +1,14 @@
-import csv
+"""
+Layout building utilities for GeoPDF export.
+
+This module provides functions for building and configuring the print layout
+for GeoPDF exports, separated from the main service logic.
+"""
+
 import os
 from contextlib import contextmanager
+from typing import List, Optional
+from...utils.formatting import timestamp_str
 
 from qgis.core import (
     QgsLayoutExporter,
@@ -9,7 +17,6 @@ from qgis.core import (
     QgsLayoutItemPicture,
     QgsMapLayer,
     QgsPrintLayout,
-    QgsProcessingFeedback,
     QgsProject,
     QgsReadWriteContext,
     QgsRectangle,
@@ -17,72 +24,11 @@ from qgis.core import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
-from .legend_exporter import export_legend
-from .logger import logger
-from .utils.formatting import _format_value, _safe_filename, timestamp_str
-from .utils.layers import iterate_layers
-from .utils.layouts import clean_layouts
-from .utils.rendering import is_simple_fill, set_layer_opacity
-from .utils.visibility import clear_all_visibility, set_layer_and_parents_visible
-
-
-def update_feedback(feedback: QgsProcessingFeedback | None, progress: int, message: str) -> None:
-    """Convenient helper to update ``feedback`` if it is provided."""
-    if feedback:
-        feedback.setProgress(progress)
-        feedback.pushInfo(message)
-
-
-# ============================================================
-# EXPORT CSV
-# ============================================================
-
-
-def export_results_to_csv(
-    result_layers: list[QgsMapLayer],
-    output_dir: str,
-    feedback: QgsProcessingFeedback | None = None,
-) -> list[str]:
-    """Export each result layer as a separate CSV file inside output_dir.
-
-    Creates output_dir if it doesn't exist. Returns the list of written file paths.
-    progress.update(current, total, name) is called before each layer if a progress object is provided.
-    """
-    os.makedirs(output_dir, exist_ok=True)
-
-    written = []
-
-    def _write_csv(layer: QgsVectorLayer):
-        """Callback used by :func:`iterate_layers` to write one CSV file.
-
-        Non-vector layers are ignored.
-        """
-        if not isinstance(layer, QgsVectorLayer):
-            return
-        filename = _safe_filename(layer.name()) + ".csv"
-        filepath = os.path.join(output_dir, filename)
-
-        field_names = [field.name() for field in layer.fields()]
-        with open(filepath, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(field_names)
-            for feat in layer.getFeatures():
-                writer.writerow([_format_value(v) for v in feat.attributes()])
-
-        written.append(filepath)
-
-    iterate_layers(result_layers, _write_csv, feedback)
-    # Ensure UI remains responsive during export
-    from qgis.PyQt.QtWidgets import QApplication
-
-    QApplication.processEvents()
-
-    return written
-
-
-# ============================================================
-# EXPORT GEOPDF
-# ============================================================
+from...logger import logger
+from...utils.layouts import clean_layouts
+from...utils.rendering import is_simple_fill, set_layer_opacity
+from...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
+from .extent import compute_export_extent, get_source_vector_layer
 
 
 def resolve_output_path(output_path: str) -> tuple[str, str]:
@@ -93,48 +39,22 @@ def resolve_output_path(output_path: str) -> tuple[str, str]:
     """
     try:
         if os.path.isdir(output_path):
+            from...utils.formatting import timestamp_str
             date_hm = timestamp_str()
             filename = f"Rapport_cartographique_{date_hm}.pdf"
             full_path = os.path.join(output_path, filename)
         else:
             full_path = output_path
+            from...utils.formatting import timestamp_str
             date_hm = timestamp_str()
         return full_path, date_hm
     except Exception as e:
         logger.error(f"Failed to resolve output path '{output_path}': {e}")
         raise
 
-
-def get_source_vector_layer(result_layers: list[QgsMapLayer]) -> QgsVectorLayer:
-    """Validate *result_layers* for PDF export.
-
-    Raises ``ValueError`` if the list is empty and ``TypeError`` if the first
-    element is not a ``QgsVectorLayer``.
-    """
-    if not result_layers:
-        raise ValueError("result_layers must contain at least one layer for extent calculation")
-
-    layer = result_layers[0]
-
-    if not isinstance(layer, QgsVectorLayer):
-        raise TypeError("First result layer must be a vector layer")
-
-    return layer
-
-
-def compute_export_extent(layer: QgsVectorLayer) -> QgsRectangle:
-    """Return a buffered ``QgsRectangle`` covering *layer*.
-
-    The rectangle is enlarged by 5 % of its width and height.
-    """
-    bbox = layer.extent()
-    bbox.grow(bbox.width() * 0.05 + bbox.height() * 0.05)
-    return QgsRectangle(bbox.xMinimum(), bbox.yMinimum(), bbox.xMaximum(), bbox.yMaximum())
-
-
 @contextmanager
 def temporary_visible_layers(
-    root, result_layers: list[QgsMapLayer], basemap_layer: QgsMapLayer | None, feedback: QgsProcessingFeedback | None
+    root, result_layers: List[QgsMapLayer], basemap_layer: QgsMapLayer | None
 ):
     """Temporarily hide all layers then make *result_layers* (and optional *basemap_layer*) visible.
 
@@ -153,7 +73,8 @@ def temporary_visible_layers(
             except Exception as exc:
                 logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
 
-        iterate_layers(result_layers, _make_visible, feedback)
+        for layer in result_layers:
+            _make_visible(layer)
         if visible_count == 0:
             logger.warning("temporary_visible_layers: no result layers could be made visible")
         if basemap_layer is not None:
@@ -162,7 +83,6 @@ def temporary_visible_layers(
             except Exception as exc:
                 logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
         layer_names = [lyr.name() for lyr in result_layers]
-        update_feedback(feedback, 20, "Couches de résultat rendues visibles")
         yield layer_names
 
 
@@ -335,7 +255,7 @@ def populate_layout_texts(
 
 def populate_layout_logo(
     layout: QgsPrintLayout,
-    logo_path: str,
+    logo_path: Optional[str],
 ) -> None:
     """Populate the logo item in the layout with a dynamic logo."""
     logo_item = get_layout_item(layout, "logo")
@@ -351,13 +271,12 @@ def populate_layout_logo(
 def build_report_layout(
     project: QgsProject,
     template_path: str,
-    date_hm: str,
+    date_hm: Optional[str],
     extent_rect: QgsRectangle,
-    logo_path: str,
+    logo_path: Optional[str],
     title: str,
     author: str,
     basemap_layer: QgsMapLayer | None,
-    feedback: QgsProcessingFeedback | None,
 ) -> QgsPrintLayout:
     """Create the layout from a QPT template and populate it with dynamic content.
 
@@ -367,6 +286,9 @@ def build_report_layout(
 
     clean_layouts(manager)
 
+    # Ensure we have a timestamp string for layout naming and date field
+    if date_hm is None:
+        date_hm = timestamp_str()
     layout_name = f"GeoPDF_{date_hm}"
 
     layout = load_layout_from_template(
@@ -376,8 +298,6 @@ def build_report_layout(
         layout_name=layout_name,
     )
 
-    update_feedback(feedback, 40, "Template QPT chargé")
-
     configure_layout_map(
         layout=layout,
         extent_rect=extent_rect,
@@ -386,8 +306,6 @@ def build_report_layout(
     # Refresh layout to ensure map changes are applied
     layout.refresh()
 
-    update_feedback(feedback, 50, "Carte configurée")
-
     populate_layout_texts(
         layout=layout,
         title=title,
@@ -395,106 +313,11 @@ def build_report_layout(
         date_hm=date_hm,
     )
 
-    update_feedback(feedback, 60, "Textes injectés")
-
     populate_layout_logo(
         layout=layout,
         logo_path=logo_path,
     )
 
-    update_feedback(feedback, 70, "Logo injecté")
-
     layout.refresh()
 
     return layout
-
-
-def export_results_to_pdf(
-    result_layers: list[QgsMapLayer],
-    output_path: str,
-    logo_path: str,
-    feedback: QgsProcessingFeedback | None = None,
-    basemap_layer: QgsMapLayer | None = None,
-    author: str = "",
-    title: str = "Résultats Secateur",
-):
-    """Orchestrate PDF export using well‑separated helper functions."""
-    # 1. Resolve output location
-    full_path, date_hm = resolve_output_path(output_path)
-    # 2. Validate inputs
-    src_layer = get_source_vector_layer(result_layers)
-    # 3. Compute extent from first result layer
-    extent_rect = compute_export_extent(src_layer)
-    # 4. Manage layer visibility and obtain legend names
-    root = QgsProject.instance().layerTreeRoot()
-    with temporary_visible_layers(root, result_layers, basemap_layer, feedback) as layer_names:
-        # 5. Initialise feedback
-        update_feedback(feedback, 0, "Préparation de l'export PDF…")
-        # 6. Build layout
-        project = QgsProject.instance()
-        template_path = os.path.join(
-            os.path.dirname(__file__),
-            "../resources/report_page.qpt",
-        )
-        layout = build_report_layout(
-            project=project,
-            template_path=template_path,
-            date_hm=date_hm,
-            extent_rect=extent_rect,
-            logo_path=logo_path,
-            title=title,
-            author=author,
-            basemap_layer=basemap_layer,
-            feedback=feedback,
-        )
-        # 7. Export legend
-        try:
-            legend_output_path = os.path.join(os.path.dirname(full_path), f"Legende_GeoPDF_{date_hm}.pdf")
-            export_legend(
-                template_path=os.path.join(os.path.dirname(__file__), "../resources/legend_layout.qpt"),
-                output_path=legend_output_path,
-                layer_names=layer_names,
-                logo_path=logo_path,
-                title=title,
-                author=author,
-            )
-        except Exception as e:
-            logger.warning(f"External legend export failed: {e}")
-        # 8. Export GeoPDF
-        update_feedback(feedback, 80, "Export du GeoPDF en cours")
-
-        exporter = QgsLayoutExporter(layout)
-
-        settings = QgsLayoutExporter.PdfExportSettings()
-        settings.dpi = 300
-        settings.writeGeoPdf = True
-        settings.forceVectorOutput = True
-        settings.exportLayersAsVectors = True
-        settings.exportMetadata = True
-
-        from qgis.PyQt.QtWidgets import QApplication
-
-        try:
-            # Ensure layout is fully refreshed before export
-            layout.refresh()
-            exporter.layout().refresh()
-
-            QApplication.processEvents()
-
-            result = exporter.exportToPdf(full_path, settings)
-
-            QApplication.processEvents()
-
-            if result != QgsLayoutExporter.Success:
-                raise RuntimeError(f"PDF export failed with code: {result}")
-
-            update_feedback(feedback, 100, "Export terminé")
-
-        except Exception as e:
-            logger.error(f"GeoPDF export failed: {e}")
-            raise RuntimeError(f"GeoPDF export failed: {e}") from e
-    # Clean up any temporary layouts created during the context
-    manager = QgsProject.instance().layoutManager()
-    clean_layouts(manager)
-    logger.info(f"GeoPDF exported to: {full_path}")
-    return full_path

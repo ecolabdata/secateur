@@ -359,17 +359,16 @@ class SecateurPanel(QDockWidget):
 
     def _execute_pdf_export(self, folder: str, title: str):
         feedback = self._create_feedback()
-
         try:
             with wait_cursor():
                 result = export_results_to_pdf(
                     self._resolve_result_layers(),
                     folder,
                     self.settings.logo_path,
-                    feedback=feedback,
                     basemap_layer=self._resolve_basemap(),
                     author=self.settings.author,
                     title=title,
+                    feedback=feedback,
                 )
 
                 self.settings.pdf_title = title

@@ -1,4 +1,4 @@
-"""Visibility helpers extracted from core.utils.
+"""Visibility helpers extracted from...utils.
 Exports:
 - clear_all_visibility (context manager to hide all layers)
 - set_layer_and_parents_visible (make a layer visible recursively)

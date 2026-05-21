@@ -1,4 +1,4 @@
-"""Layout management helpers extracted from core.utils.
+"""Layout management helpers extracted from...utils.
 Exports:
 - clean_layouts
 - create_layout

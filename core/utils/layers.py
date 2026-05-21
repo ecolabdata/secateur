@@ -1,4 +1,4 @@
-"""Layer‑tree utilities extracted from core.utils.
+"""Layer‑tree utilities extracted from...utils.
 Exports functions for group handling, layer discovery and iteration.
 """
 

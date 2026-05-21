@@ -1,4 +1,4 @@
-"""Feedback helper extracted from core.utils.
+"""Feedback helper extracted from...utils.
 Exports:
 - update_feedback
 """

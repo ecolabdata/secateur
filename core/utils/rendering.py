@@ -1,4 +1,4 @@
-"""Rendering‑related helpers extracted from core.utils.
+"""Rendering‑related helpers extracted from...utils.
 Exports:
 - set_layer_opacity
 - is_simple_fill
