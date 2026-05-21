@@ -42,6 +42,7 @@ class GeoPdfExporter:
         # Validate extension
         if output_path.suffix.lower() != ".pdf":
             logger.error(f"Invalid output file extension: {output_path.suffix}")
+            raise ValueError(f"Invalid output file extension: {output_path.suffix}")
 
         # Write permission test
         test_file = output_path.parent / ".__kilo_write_test"

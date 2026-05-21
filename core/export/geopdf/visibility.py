@@ -14,6 +14,29 @@ from ...utils.rendering import is_simple_fill, set_layer_opacity
 from ...utils.visibility import clear_all_visibility, set_layer_and_parents_visible
 
 
+def _apply_export_layer_style(root, layer) -> int:
+    """Apply export styling to a layer.
+
+    Sets opacity for simple fill layers and makes the layer and its parents visible.
+    Returns ``1`` if the layer (or its parents) was made visible, otherwise ``0``.
+    """
+    try:
+        if is_simple_fill(layer):
+            set_layer_opacity(layer, opacity=0.8)
+        return int(set_layer_and_parents_visible(root, layer))
+    except Exception as exc:
+        logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
+        return 0
+
+
+def _collect_layer_names(result_layers: list[QgsMapLayer]) -> list[str]:
+    """Return a list of layer names from *result_layers*.
+
+    Separated for clarity and potential reuse.
+    """
+    return [lyr.name() for lyr in result_layers]
+
+
 @contextmanager
 def temporary_visible_layers(
     root,
@@ -33,17 +56,8 @@ def temporary_visible_layers(
 
         update_feedback(feedback, 20, "Couches de résultat rendues visibles")
 
-        def _make_visible(layer):
-            nonlocal visible_count
-            try:
-                if is_simple_fill(layer):
-                    set_layer_opacity(layer, opacity=0.8)
-                visible_count += int(set_layer_and_parents_visible(root, layer))
-            except Exception as exc:
-                logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)
-
         for layer in result_layers:
-            _make_visible(layer)
+            visible_count += _apply_export_layer_style(root, layer)
         if visible_count == 0:
             logger.warning("temporary_visible_layers: no result layers could be made visible")
         if basemap_layer is not None:
@@ -51,5 +65,5 @@ def temporary_visible_layers(
                 visible_count += int(set_layer_and_parents_visible(root, basemap_layer))
             except Exception as exc:
                 logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
-        layer_names = [lyr.name() for lyr in result_layers]
+        layer_names = _collect_layer_names(result_layers)
         yield layer_names

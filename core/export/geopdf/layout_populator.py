@@ -6,7 +6,7 @@ import os
 
 from qgis.core import QgsLayoutItemLabel, QgsLayoutItemPicture, QgsPrintLayout
 
-from ...utils.layouts import get_layout_item
+from .layout_items import resolve_layout_items
 
 
 def populate_layout_texts(
@@ -19,22 +19,23 @@ def populate_layout_texts(
 
     Updates the 'title', 'author', and 'date' label items.
     """
+    items = resolve_layout_items(layout)
     # Title
-    title_item = get_layout_item(layout, "title")
+    title_item = items.title_item
     if not isinstance(title_item, QgsLayoutItemLabel):
         raise TypeError(f"Layout item 'title' is not a QgsLayoutItemLabel, got {type(title_item)}")
     title_item.setText(title)
     title_item.refresh()
 
     # Author
-    author_item = get_layout_item(layout, "author")
+    author_item = items.author_item
     if not isinstance(author_item, QgsLayoutItemLabel):
         raise TypeError(f"Layout item 'author' is not a QgsLayoutItemLabel, got {type(author_item)}")
     author_item.setText(author or "")
     author_item.refresh()
 
     # Date
-    date_item = get_layout_item(layout, "date")
+    date_item = items.date_item
     if not isinstance(date_item, QgsLayoutItemLabel):
         raise TypeError(f"Layout item 'date' is not a QgsLayoutItemLabel, got {type(date_item)}")
     date_item.setText(date_hm)
@@ -50,7 +51,8 @@ def populate_layout_logo(
     If ``logo_path`` is provided and points to an existing file, the picture
     path is set; otherwise the logo item is left unchanged.
     """
-    logo_item = get_layout_item(layout, "logo")
+    items = resolve_layout_items(layout)
+    logo_item = items.logo_item
 
     if not isinstance(logo_item, QgsLayoutItemPicture):
         raise TypeError(f"Layout item 'logo' is not a QgsLayoutItemPicture, got {type(logo_item)}")

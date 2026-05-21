@@ -5,11 +5,8 @@ This is the facade for the new GeoPDF export functionality, providing a clean
 interface while delegating to the new modular structure.
 """
 
-from pathlib import Path
-
 from qgis.core import QgsMapLayer, QgsProcessingFeedback, QgsProject
 
-from ...logger import logger
 from .config import GeoPdfExportConfig
 from .service import GeoPdfExportService
 
@@ -40,25 +37,12 @@ def export_results_to_pdf(
     Returns:
         The path to the exported PDF file
     """
-    # Create configuration object
-    # Resolve output path: if a directory is provided, create a timestamped PDF filename inside it
-    from ...utils.formatting import timestamp_str
-
-    output_path_obj = Path(output_path).expanduser()
-    if output_path_obj.is_dir():
-        timestamp = timestamp_str()
-        output_path_obj = output_path_obj / f"Rapport_cartographique_{timestamp}.pdf"
-        logger.debug(f"Output path is a directory; using generated file: {output_path_obj}")
-    else:
-        # Ensure parent directories exist
-        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-    config = GeoPdfExportConfig(
-        output_path=output_path_obj,
-        template_path=Path(__file__).resolve().parents[3] / "resources" / "report_page.qpt",
-        legend_template_path=Path(__file__).resolve().parents[3] / "resources" / "legend_layout.qpt",
+    # Create configuration object using default helper
+    config = GeoPdfExportConfig.default(
+        output_path=output_path,
         title=title,
         author=author,
-        logo_path=Path(logo_path) if logo_path else None,
+        logo_path=logo_path,
         export_legend=True,
     )
 
