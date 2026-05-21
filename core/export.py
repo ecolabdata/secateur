@@ -4,35 +4,25 @@ from contextlib import contextmanager
 
 from qgis.core import (
     QgsLayoutExporter,
+    QgsLayoutItemLabel,
     QgsLayoutItemMap,
-    QgsLayoutPoint,
-    QgsLayoutSize,
+    QgsLayoutItemPicture,
     QgsMapLayer,
     QgsPrintLayout,
     QgsProcessingFeedback,
     QgsProject,
+    QgsReadWriteContext,
     QgsRectangle,
-    QgsUnitTypes,
     QgsVectorLayer,
 )
+from qgis.PyQt.QtXml import QDomDocument
 
-# Import helpers from geopdf_utils
-from .geopdf_utils import (
-    _add_frame_title,
-    add_copyright,
-    add_logo,
-    add_map_credits,
-    add_north_arrow,
-    add_scale,
-    add_title,
-)
 from .legend_exporter import export_legend
 from .logger import logger
 from .utils import (
     _format_value,
     _safe_filename,
     clean_layouts,
-    create_layout,
     is_simple_fill,
     iterate_layers,
     set_layer_and_parents_visible,
@@ -182,51 +172,191 @@ def temporary_visible_layers(
         yield layer_names
 
 
-def create_map_item(layout: QgsPrintLayout, extent_rect: QgsRectangle) -> QgsLayoutItemMap:
-    """Create and configure the map item for the layout.
+def load_layout_from_template(
+    project: QgsProject,
+    manager,
+    template_path: str,
+    layout_name: str,
+) -> QgsPrintLayout:
+    """Load a layout from a QPT template file."""
+    layout = QgsPrintLayout(project)
+    layout.initializeDefaults()
+    layout.setName(layout_name)
 
-    Returns the configured ``QgsLayoutItemMap`` instance.
-    """
-    map_item = QgsLayoutItemMap(layout)
-    map_item.setRect(20, 20, 20, 20)
-    map_item.setExtent(extent_rect)
-    map_item.attemptMove(QgsLayoutPoint(5, 26, QgsUnitTypes.LayoutMillimeters))
-    map_item.attemptResize(QgsLayoutSize(240, 180, QgsUnitTypes.LayoutMillimeters))
-    layout.addLayoutItem(map_item)
-    map_item.refresh()
-    return map_item
+    with open(template_path, encoding="utf-8") as f:
+        template_content = f.read()
+
+    doc = QDomDocument()
+    success, error_message, error_line, error_column = doc.setContent(template_content)
+
+    if not success:
+        raise ValueError(f"Failed to parse QPT template (line={error_line}, column={error_column}): {error_message}")
+
+    context = QgsReadWriteContext()
+
+    items, ok = layout.loadFromTemplate(doc, context)
+
+    if not ok:
+        raise RuntimeError(f"Failed to load layout template: {template_path}")
+
+    manager.addLayout(layout)
+
+    return layout
 
 
-def add_layout_decorations(
-    layout,
-    map_item: QgsLayoutItemMap,
+def get_layout_item(layout: QgsPrintLayout, item_id: str):
+    """Get a layout item by its ID, raising an error if not found."""
+    item = layout.itemById(item_id)
+
+    if item is None:
+        raise ValueError(f"Layout item '{item_id}' not found")
+
+    return item
+
+
+def configure_layout_map(
+    layout: QgsPrintLayout,
     extent_rect: QgsRectangle,
-    logo_path: str,
+) -> None:
+    """Configure the map item in the layout from template."""
+
+    map_item = get_layout_item(layout, "Map 1")
+
+    if not isinstance(map_item, QgsLayoutItemMap):
+        raise TypeError(f"Layout item 'Map 1' is not a QgsLayoutItemMap, got {type(map_item)}")
+
+    logger.info(
+        "Applying export extent to map item: xmin=%s ymin=%s xmax=%s ymax=%s",
+        extent_rect.xMinimum(),
+        extent_rect.yMinimum(),
+        extent_rect.xMaximum(),
+        extent_rect.yMaximum(),
+    )
+
+    # ------------------------------------------------------------------
+    # IMPORTANT:
+    # The template map frame has its own aspect ratio.
+    # We must adapt the geographic extent to that ratio,
+    # otherwise QGIS expands the map unpredictably.
+    # ------------------------------------------------------------------
+
+    map_rect = map_item.rect()
+
+    frame_width = map_rect.width()
+    frame_height = map_rect.height()
+
+    if frame_height == 0:
+        raise ValueError("Map frame height is zero")
+
+    frame_ratio = frame_width / frame_height
+
+    extent_width = extent_rect.width()
+    extent_height = extent_rect.height()
+
+    if extent_height == 0:
+        raise ValueError("Extent height is zero")
+
+    extent_ratio = extent_width / extent_height
+
+    adjusted_extent = QgsRectangle(extent_rect)
+
+    # ------------------------------------------------------------------
+    # Adjust extent to frame aspect ratio
+    # ------------------------------------------------------------------
+
+    if extent_ratio > frame_ratio:
+        # extent too wide -> increase height
+        new_height = extent_width / frame_ratio
+        delta = (new_height - extent_height) / 2
+
+        adjusted_extent.setYMinimum(extent_rect.yMinimum() - delta)
+        adjusted_extent.setYMaximum(extent_rect.yMaximum() + delta)
+
+    else:
+        # extent too tall -> increase width
+        new_width = extent_height * frame_ratio
+        delta = (new_width - extent_width) / 2
+
+        adjusted_extent.setXMinimum(extent_rect.xMinimum() - delta)
+        adjusted_extent.setXMaximum(extent_rect.xMaximum() + delta)
+
+    logger.info(
+        "Adjusted extent: xmin=%s ymin=%s xmax=%s ymax=%s",
+        adjusted_extent.xMinimum(),
+        adjusted_extent.yMinimum(),
+        adjusted_extent.xMaximum(),
+        adjusted_extent.yMaximum(),
+    )
+
+    # ------------------------------------------------------------------
+    # Reset inherited template state
+    # ------------------------------------------------------------------
+
+    map_item.setAtlasDriven(False)
+
+    # Important with QPT templates
+    map_item.setKeepLayerSet(False)
+    map_item.setKeepLayerStyles(False)
+
+    # ------------------------------------------------------------------
+    # Apply corrected extent
+    # ------------------------------------------------------------------
+
+    map_item.zoomToExtent(adjusted_extent)
+
+    # Force redraw
+    map_item.refresh()
+    map_item.invalidateCache()
+    map_item.update()
+
+
+def populate_layout_texts(
+    layout: QgsPrintLayout,
     title: str,
     author: str,
-    basemap_layer: QgsMapLayer | None,
-    feedback: QgsProcessingFeedback | None,
-):
-    """Add title, frame, scale bar, north arrow, logo and credits to the layout."""
-    # Title and surrounding frame
-    add_title(layout, title)
-    _add_frame_title(layout, largeur_page=295.0)
-    update_feedback(feedback, 60, "Titre et cadre ajoutés")
-    # Decorations
-    add_scale(layout, map_item, extent_rect)
-    add_north_arrow(layout)
-    add_logo(layout, logo_path)
-    if author:
-        add_copyright(layout, author=author)
-    else:
-        add_copyright(layout)
-    if basemap_layer is not None:
-        add_map_credits(layout, f"© {basemap_layer.name()}")
-    update_feedback(feedback, 70, "Légende construite")
+    date_hm: str,
+) -> None:
+    """Populate text items in the layout with dynamic content."""
+    # Title
+    title_item = get_layout_item(layout, "title")
+    if not isinstance(title_item, QgsLayoutItemLabel):
+        raise TypeError(f"Layout item 'title' is not a QgsLayoutItemLabel, got {type(title_item)}")
+    title_item.setText(title)
+    title_item.refresh()
+
+    # Author
+    author_item = get_layout_item(layout, "author")
+    if not isinstance(author_item, QgsLayoutItemLabel):
+        raise TypeError(f"Layout item 'author' is not a QgsLayoutItemLabel, got {type(author_item)}")
+    author_item.setText(author or "")
+    author_item.refresh()
+
+    # Date
+    date_item = get_layout_item(layout, "date")
+    if not isinstance(date_item, QgsLayoutItemLabel):
+        raise TypeError(f"Layout item 'date' is not a QgsLayoutItemLabel, got {type(date_item)}")
+    date_item.setText(date_hm)
+    date_item.refresh()
+
+
+def populate_layout_logo(
+    layout: QgsPrintLayout,
+    logo_path: str,
+) -> None:
+    """Populate the logo item in the layout with a dynamic logo."""
+    logo_item = get_layout_item(layout, "logo")
+
+    if not isinstance(logo_item, QgsLayoutItemPicture):
+        raise TypeError(f"Layout item 'logo' is not a QgsLayoutItemPicture, got {type(logo_item)}")
+
+    if logo_path and os.path.exists(logo_path):
+        logo_item.setPicturePath(logo_path)
+        logo_item.refresh()
 
 
 def build_report_layout(
     project: QgsProject,
+    template_path: str,
     date_hm: str,
     extent_rect: QgsRectangle,
     logo_path: str,
@@ -235,20 +365,53 @@ def build_report_layout(
     basemap_layer: QgsMapLayer | None,
     feedback: QgsProcessingFeedback | None,
 ) -> QgsPrintLayout:
-    """Create the layout and populate it with map item and decorations.
+    """Create the layout from a QPT template and populate it with dynamic content.
 
     Returns the fully prepared ``QgsPrintLayout``.
     """
     manager = project.layoutManager()
+
     clean_layouts(manager)
+
     layout_name = f"GeoPDF_{date_hm}"
-    layout = create_layout(project, manager, layout_name)
-    update_feedback(feedback, 40, "Mise en page initialisée")
-    # Map item
-    map_item = create_map_item(layout, extent_rect)
-    update_feedback(feedback, 50, "Élément carte ajouté")
-    # Decorations and title/frame
-    add_layout_decorations(layout, map_item, extent_rect, logo_path, title, author, basemap_layer, feedback)
+
+    layout = load_layout_from_template(
+        project=project,
+        manager=manager,
+        template_path=template_path,
+        layout_name=layout_name,
+    )
+
+    update_feedback(feedback, 40, "Template QPT chargé")
+
+    configure_layout_map(
+        layout=layout,
+        extent_rect=extent_rect,
+    )
+
+    # Refresh layout to ensure map changes are applied
+    layout.refresh()
+
+    update_feedback(feedback, 50, "Carte configurée")
+
+    populate_layout_texts(
+        layout=layout,
+        title=title,
+        author=author,
+        date_hm=date_hm,
+    )
+
+    update_feedback(feedback, 60, "Textes injectés")
+
+    populate_layout_logo(
+        layout=layout,
+        logo_path=logo_path,
+    )
+
+    update_feedback(feedback, 70, "Logo injecté")
+
+    layout.refresh()
+
     return layout
 
 
@@ -275,15 +438,20 @@ def export_results_to_pdf(
         update_feedback(feedback, 0, "Préparation de l'export PDF…")
         # 6. Build layout
         project = QgsProject.instance()
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            "../resources/report_page.qpt",
+        )
         layout = build_report_layout(
-            project,
-            date_hm,
-            extent_rect,
-            logo_path,
-            title,
-            author,
-            basemap_layer,
-            feedback,
+            project=project,
+            template_path=template_path,
+            date_hm=date_hm,
+            extent_rect=extent_rect,
+            logo_path=logo_path,
+            title=title,
+            author=author,
+            basemap_layer=basemap_layer,
+            feedback=feedback,
         )
         # 7. Export legend
         try:
@@ -300,21 +468,34 @@ def export_results_to_pdf(
             logger.warning(f"External legend export failed: {e}")
         # 8. Export GeoPDF
         update_feedback(feedback, 80, "Export du GeoPDF en cours")
+
         exporter = QgsLayoutExporter(layout)
-        exporter.layout().refresh()
+
         settings = QgsLayoutExporter.PdfExportSettings()
         settings.dpi = 300
         settings.writeGeoPdf = True
         settings.forceVectorOutput = True
         settings.exportLayersAsVectors = True
         settings.exportMetadata = True
+
+        from qgis.PyQt.QtWidgets import QApplication
+
         try:
-            from qgis.PyQt.QtWidgets import QApplication
+            # Ensure layout is fully refreshed before export
+            layout.refresh()
+            exporter.layout().refresh()
 
             QApplication.processEvents()
-            exporter.exportToPdf(full_path, settings)
+
+            result = exporter.exportToPdf(full_path, settings)
+
             QApplication.processEvents()
+
+            if result != QgsLayoutExporter.Success:
+                raise RuntimeError(f"PDF export failed with code: {result}")
+
             update_feedback(feedback, 100, "Export terminé")
+
         except Exception as e:
             logger.error(f"GeoPDF export failed: {e}")
             raise RuntimeError(f"GeoPDF export failed: {e}") from e
