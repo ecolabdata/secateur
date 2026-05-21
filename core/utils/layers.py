@@ -2,10 +2,6 @@
 Exports functions for group handling, layer discovery and iteration.
 """
 
-import os
-from contextlib import contextmanager
-from typing import List
-
 from qgis.core import (
     QgsLayerTreeGroup,
     QgsLayerTreeLayer,
@@ -13,13 +9,11 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from .feedback import update_feedback  # placeholder for circular safety; actual import may be lazy
-
 from ..constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..logger import logger
 
 
-def get_or_create_group(path: List[str], clear: bool = False):
+def get_or_create_group(path: list[str], clear: bool = False):
     """Return or create a :class:`QgsLayerTreeGroup`.
 
     *path* – list of group names representing the hierarchy.
@@ -35,11 +29,7 @@ def get_or_create_group(path: List[str], clear: bool = False):
         if not node:
             return None
         node = next(
-            (
-                child
-                for child in node.children()
-                if isinstance(child, QgsLayerTreeGroup) and child.name() == name
-            ),
+            (child for child in node.children() if isinstance(child, QgsLayerTreeGroup) and child.name() == name),
             None,
         )
         if node is None:
@@ -77,12 +67,12 @@ def get_created_objects_group(clear: bool = False):
     return get_or_create_group([CREATED_OBJECTS_GROUP_NAME], clear=clear)
 
 
-def filter_out_source(layers: List[QgsVectorLayer], source: QgsVectorLayer) -> List[QgsVectorLayer]:
+def filter_out_source(layers: list[QgsVectorLayer], source: QgsVectorLayer) -> list[QgsVectorLayer]:
     """Return a new list of *layers* without the *source* layer."""
     return [lyr for lyr in layers if lyr != source]
 
 
-def find_layers(exclude: QgsVectorLayer | None = None) -> List[QgsVectorLayer]:
+def find_layers(exclude: QgsVectorLayer | None = None) -> list[QgsVectorLayer]:
     """Return a list of visible vector layers in the current QGIS project.
 
     Args:
@@ -94,12 +84,12 @@ def find_layers(exclude: QgsVectorLayer | None = None) -> List[QgsVectorLayer]:
     root = project.layerTreeRoot()
     if root is None:
         return []
-    results: List[QgsVectorLayer] = []
+    results: list[QgsVectorLayer] = []
     _collect_layers(root, results, exclude)
     return results
 
 
-def _collect_layers(group: QgsLayerTreeGroup, out: List[QgsVectorLayer], exclude):
+def _collect_layers(group: QgsLayerTreeGroup, out: list[QgsVectorLayer], exclude):
     """Recursively collect visible vector layers from *group* into *out*."""
     for child in group.children():
         if isinstance(child, QgsLayerTreeGroup):
@@ -111,6 +101,7 @@ def _collect_layers(group: QgsLayerTreeGroup, out: List[QgsVectorLayer], exclude
             layer = child.layer()
             if isinstance(layer, QgsVectorLayer) and layer != exclude:
                 out.append(layer)
+
 
 def iterate_layers(layers, callback, feedback=None):
     """Iterate over *layers* and apply *callback* to each.

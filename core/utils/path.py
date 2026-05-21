@@ -2,6 +2,7 @@ import os
 
 from qgis.PyQt.QtCore import QFile  # noqa: UP035
 
+
 def _icons_dir():
     """Return the absolute path to the plugin's resources directory located at the project root."""
     # The file ``geopdf_utils.py`` resides in the ``core`` subdirectory;

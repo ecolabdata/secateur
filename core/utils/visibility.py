@@ -5,7 +5,8 @@ Exports:
 """
 
 from contextlib import contextmanager
-from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer
+
+from qgis.core import QgsLayerTreeGroup, QgsMapLayer
 
 
 def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -> bool:

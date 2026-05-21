@@ -14,8 +14,7 @@ def clean_layouts(manager):
 
 
 def create_layout(project, manager, name):
-    """Create a new named ``QgsPrintLayout`` after removing any existing layout with the same name.
-    """
+    """Create a new named ``QgsPrintLayout`` after removing any existing layout with the same name."""
     existing = manager.layoutByName(name)
     if existing:
         manager.removeLayout(existing)
