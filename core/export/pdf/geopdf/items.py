@@ -7,7 +7,7 @@ from qgis.core import (
     QgsPrintLayout,
 )
 
-from ..common.layout_items import get_required_item
+from ..common.layout.items import get_required_item
 
 
 @dataclass(slots=True)

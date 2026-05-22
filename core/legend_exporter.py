@@ -19,8 +19,8 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from .export.pdf.common.layout_items import get_optional_item
-from .export.pdf.common.metadata import apply_label_text, apply_logo
+from .export.pdf.common.layout.items import get_optional_item
+from .export.pdf.common.layout.metadata import apply_label_text, apply_logo
 from .export.pdf.common.models import PdfExportOptions
 from .export.pdf.common.pdf_export import export_layout_to_pdf
 from .export.pdf.common.template_loader import create_layout_from_template

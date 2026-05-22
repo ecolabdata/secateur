@@ -19,10 +19,10 @@ from qgis.core import (
 from ....logger import logger
 from ....utils.feedback import update_feedback
 from ....utils.formatting import display_date_str
-from ..common.extent import compute_export_extent, get_source_vector_layer
+from ..common.layout.extent import compute_export_extent, get_source_vector_layer
+from ..common.layout.visibility import temporary_visible_layers
 from ..common.models import PdfExportOptions
 from ..common.pdf_export import export_layout_to_pdf
-from ..common.visibility import temporary_visible_layers
 from .config import GeoPdfExportConfig
 from .layout import build_report_layout
 
