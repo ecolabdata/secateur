@@ -66,4 +66,6 @@ def temporary_visible_layers(
             except Exception as exc:
                 logger.exception("Could not set visibility for basemap layer %s: %s", basemap_layer.name(), exc)
         layer_names = _collect_layer_names(result_layers)
+        if basemap_layer is not None:
+            layer_names.append(basemap_layer.name())
         yield layer_names

@@ -35,4 +35,5 @@ def load_layout_from_template(
 
     manager.addLayout(layout)
 
-    return layout
+    # Retrieve the layout instance managed by the layout manager to ensure a valid Python wrapper
+    return manager.layoutByName(layout_name)

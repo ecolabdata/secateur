@@ -7,16 +7,15 @@ API for constructing a QGIS print layout ready for GeoPDF export.
 """
 
 from qgis.core import (
+    QgsLayoutItemMap,
     QgsPrintLayout,
     QgsProject,
     QgsRectangle,
-    QgsMapLayer,
-    QgsLayoutItemMap,
 )
-from ...logger import logger
 
+from ...logger import logger
+from .layout_items import ReportLayoutItems, resolve_layout_items
 from .template_loader import load_layout_from_template
-from .layout_items import resolve_layout_items, ReportLayoutItems
 
 
 def populate_layout_texts(items: ReportLayoutItems, title: str, author: str, date_hm: str) -> None:
