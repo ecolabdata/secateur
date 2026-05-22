@@ -7,9 +7,7 @@ from ..logger import logger
 
 def _icons_dir():
     """Return the absolute path to the plugin's resources directory located at the project root."""
-    # The file ``geopdf_utils.py`` resides in the ``core`` subdirectory;
-    # the ``resources`` folder is at the repository root
-    basepath = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+    basepath = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir))
     return os.path.join(basepath, "resources").replace("\\", "/")
 
 

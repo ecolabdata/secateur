@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
 
-from pypdf import PdfWriter
+from pypdf import PdfWriter  # type:ignore
 from qgis.core import (
     QgsCategorizedSymbolRenderer,
     QgsGraduatedSymbolRenderer,
