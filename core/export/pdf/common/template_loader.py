@@ -39,7 +39,7 @@ def create_layout_from_template(
 
     context = QgsReadWriteContext()
 
-    items, ok = layout.loadFromTemplate(doc, context)
+    _, ok = layout.loadFromTemplate(doc, context)
 
     if not ok:
         raise RuntimeError(f"Failed to load layout template: {template_path}")
