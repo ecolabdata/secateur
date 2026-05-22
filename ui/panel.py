@@ -19,8 +19,8 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.export import export_results_to_csv, export_results_to_pdf
 from ..core.image_manager import ImageManager
-from ..core.layer_resolver import LayerResolver
 from ..core.logger import logger
+from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
 from .settings import SettingsDialog, SettingsManager
 

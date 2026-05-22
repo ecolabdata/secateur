@@ -16,10 +16,10 @@ def create_layout_from_template(
     register_in_manager: bool = False,
 ) -> QgsPrintLayout:
     """Load a layout from a QPT template file."""
-    # Ensure any existing layout with the same name is removed to avoid stale references
-    manager = project.layoutManager()
-    if layout_name and manager.layoutByName(layout_name):
-        manager.removeLayout(manager.layoutByName(layout_name))
+    # NOTE: Previously we removed any existing layout with the same name to avoid stale references.
+    # This removal can lead to dangling Python wrappers when the layout is also registered in the manager.
+    # The removal step is now omitted; the caller should manage layout names appropriately.
+    manager = project.layoutManager()  # retained for potential manager registration later
     layout = QgsPrintLayout(project)
     layout.initializeDefaults()
     if layout_name:

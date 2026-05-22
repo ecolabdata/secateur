@@ -12,7 +12,7 @@ from qgis.core import (
 
 from ..core.constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..core.intersector import add_results_to_project, intersect_layer
-from ..core.layer_resolver import LayerResolver
+from ..core.utils.layer_resolver import LayerResolver
 from ..core.utils.layers import find_layers, get_created_objects_group, get_results_group
 
 # ──────────────────────────────────────────────
