@@ -6,7 +6,7 @@ This module provides helper functions for handling layout items in GeoPDF export
 
 from qgis.core import QgsPrintLayout
 
-from ...export.pdf.common.layout_items import get_required_item
+from ..common.layout_items import get_required_item
 
 
 def resolve_layout_items(layout: QgsPrintLayout):

@@ -1,8 +1,5 @@
 """
-Extent calculation utilities for GeoPDF export.
-
-This module provides functions for calculating the geographic extent
-of layers for use in GeoPDF exports.
+Extent calculation utilities shared across PDF exporters.
 """
 
 from qgis.core import QgsRectangle, QgsVectorLayer

@@ -15,10 +15,10 @@ from qgis.core import (
     QgsRectangle,
 )
 
-from ...logger import logger
-from ..pdf.common.metadata import apply_label_text, apply_logo
+from ....logger import logger
+from ..common.metadata import apply_label_text, apply_logo
+from ..common.template_loader import create_layout_from_template as load_layout_from_template
 from .layout_items import resolve_layout_items
-from .template_loader import load_layout_from_template
 
 
 def populate_layout_texts(items, title: str, author: str, date_hm: str) -> None:
@@ -61,9 +61,9 @@ def build_report_layout(
     layout_name = "GeoPDF"
     layout = load_layout_from_template(
         project=project,
-        manager=project.layoutManager(),
-        template_path=template_path,
+        template_path=Path(template_path),
         layout_name=layout_name,
+        register_in_manager=True,
     )
 
     # Resolve layout items

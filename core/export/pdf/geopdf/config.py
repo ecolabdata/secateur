@@ -30,7 +30,7 @@ class GeoPdfExportConfig:
         """
         from pathlib import Path
 
-        from ...utils.formatting import timestamp_str
+        from ....utils.formatting import timestamp_str
 
         # Resolve output path; if a directory is provided, create a timestamped filename
         output_path_obj = Path(output_path).expanduser()
@@ -42,7 +42,7 @@ class GeoPdfExportConfig:
             output_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
         # Determine resource base path (three levels up from this file)
-        resource_base = Path(__file__).resolve().parents[3] / "resources"
+        resource_base = Path(__file__).resolve().parents[4] / "resources"
         template_path = resource_base / "report_page.qpt"
         legend_template_path = resource_base / "legend_layout.qpt"
 
