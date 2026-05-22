@@ -6,6 +6,8 @@ functions that were previously split across several files. It provides a simple
 API for constructing a QGIS print layout ready for GeoPDF export.
 """
 
+from pathlib import Path
+
 from qgis.core import (
     QgsLayoutItemMap,
     QgsPrintLayout,
@@ -14,29 +16,22 @@ from qgis.core import (
 )
 
 from ...logger import logger
-from .layout_items import ReportLayoutItems, resolve_layout_items
+from ..pdf.common.metadata import apply_label_text, apply_logo
+from .layout_items import resolve_layout_items
 from .template_loader import load_layout_from_template
 
 
-def populate_layout_texts(items: ReportLayoutItems, title: str, author: str, date_hm: str) -> None:
+def populate_layout_texts(items, title: str, author: str, date_hm: str) -> None:
     """Populate title, author and date label items.
 
     The function validates each item type before setting the text.
     """
-    title_item = items.title_item
-    title_item.setText(title)
-    title_item.refresh()
-
-    author_item = items.author_item
-    author_item.setText(author or "")
-    author_item.refresh()
-
-    date_item = items.date_item
-    date_item.setText(date_hm)
-    date_item.refresh()
+    apply_label_text(items.title_item, title)
+    apply_label_text(items.author_item, author or "")
+    apply_label_text(items.date_item, date_hm)
 
 
-def populate_layout_logo(items: ReportLayoutItems, logo_path: str | None) -> None:
+def populate_layout_logo(items, logo_path: str | None) -> None:
     """Set the logo picture item if a valid path is provided.
 
     If ``logo_path`` is ``None`` or does not exist on the filesystem, the logo
@@ -44,10 +39,8 @@ def populate_layout_logo(items: ReportLayoutItems, logo_path: str | None) -> Non
     """
     import os
 
-    logo_item = items.logo_item
     if logo_path and os.path.exists(logo_path):
-        logo_item.setPicturePath(logo_path)
-        logo_item.refresh()
+        apply_logo(items.logo_item, Path(logo_path))
 
 
 def build_report_layout(
@@ -65,7 +58,7 @@ def build_report_layout(
     metadata texts and an optional logo.
     """
     # Load template and obtain a fresh layout instance
-    layout_name = f"GeoPDF_{date_hm}" if date_hm else "GeoPDF"
+    layout_name = "GeoPDF"
     layout = load_layout_from_template(
         project=project,
         manager=project.layoutManager(),

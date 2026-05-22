@@ -11,6 +11,7 @@ from qgis.core import QgsLayout, QgsLayoutExporter
 
 from ...logger import logger
 from ...utils.layouts import clean_layouts
+from ..pdf.common.qgis_utils import process_qt_events
 
 
 class GeoPdfExporter:
@@ -61,9 +62,7 @@ class GeoPdfExporter:
             exporter.layout().refresh()
 
             # Process Qt events
-            from qgis.PyQt.QtWidgets import QApplication
-
-            QApplication.processEvents()
+            process_qt_events()
 
             if len(layout.items()) == 0:
                 raise RuntimeError("Layout contains no items; template may have failed to load.")
@@ -75,7 +74,7 @@ class GeoPdfExporter:
                 settings.writeGeoPdf = False
                 result = exporter.exportToPdf(str(output_path), settings)
 
-            QApplication.processEvents()
+            process_qt_events()
             if result != QgsLayoutExporter.Success:
                 error_msg = exporter.errorMessage() if hasattr(exporter, "errorMessage") else ""
                 error_file = exporter.errorFile() if hasattr(exporter, "errorFile") else ""

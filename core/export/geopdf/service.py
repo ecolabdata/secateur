@@ -10,7 +10,6 @@ from pathlib import Path
 
 from qgis.core import (
     QgsLayout,
-    QgsLayoutExporter,
     QgsMapLayer,
     QgsProcessingFeedback,
     QgsProject,
@@ -19,6 +18,9 @@ from qgis.core import (
 
 from ...logger import logger
 from ...utils.feedback import update_feedback
+from ...utils.formatting import display_date_str
+from ..pdf.common.models import PdfExportOptions
+from ..pdf.common.pdf_export import export_layout_to_pdf
 from .config import GeoPdfExportConfig
 from .extent import compute_export_extent, get_source_vector_layer
 from .layout import build_report_layout
@@ -76,7 +78,7 @@ class GeoPdfExportService:
             layout = build_report_layout(
                 project=self.project,
                 template_path=str(self.config.template_path),
-                date_hm=None,
+                date_hm=display_date_str(),
                 extent_rect=extent_rect,
                 logo_path=str(self.config.logo_path) if self.config.logo_path else None,
                 title=self.config.title,
@@ -120,18 +122,18 @@ class GeoPdfExportService:
         """Delegate heavy export logic to GeoPdfExporter infrastructure class."""
         # Prepare settings
         update_feedback(feedback, 80, "Export du GeoPDF en cours")
-        settings = QgsLayoutExporter.PdfExportSettings()
-        settings.dpi = self.config.dpi
-        settings.writeGeoPdf = True
-        settings.forceVectorOutput = True
-        settings.exportLayersAsVectors = True
-        settings.exportMetadata = True
+
+        # Create options for PDF export
+        options = PdfExportOptions(
+            dpi=self.config.dpi,
+            write_geopdf=True,
+            force_vector_output=True,
+            export_layers_as_vectors=True,
+            export_metadata=True,
+        )
 
         output_path = Path(self.config.output_path)
-        # Use infrastructure exporter
-        from .exporter import GeoPdfExporter
-
-        exporter = GeoPdfExporter()
-        result_path = exporter.export(layout, output_path, settings)
+        # Use common export function
+        result_path = export_layout_to_pdf(layout=layout, output_path=output_path, options=options)
         update_feedback(feedback, 100, "Export terminé")
         return result_path

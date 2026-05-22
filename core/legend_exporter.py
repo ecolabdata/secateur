@@ -1,30 +1,31 @@
 import gc
 import textwrap
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import cast
 
 from pypdf import PdfWriter  # type:ignore
 from qgis.core import (
     QgsCategorizedSymbolRenderer,
     QgsGraduatedSymbolRenderer,
     QgsLayerTree,
-    QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
     QgsLayoutItemPicture,
     QgsPrintLayout,
     QgsProject,
-    QgsReadWriteContext,
     QgsRuleBasedRenderer,
     QgsSingleSymbolRenderer,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtXml import QDomDocument
 
+from .export.pdf.common.layout_items import get_optional_item
+from .export.pdf.common.metadata import apply_label_text, apply_logo
+from .export.pdf.common.models import PdfExportOptions
+from .export.pdf.common.pdf_export import export_layout_to_pdf
+from .export.pdf.common.template_loader import create_layout_from_template
 from .logger import logger
+from .utils.formatting import display_date_str
 
 
 @dataclass(slots=True)
@@ -195,22 +196,9 @@ class LayoutFactory:
 
     def create_layout(self, project: QgsProject) -> QgsPrintLayout:
         """Create a new layout from template."""
-        layout = QgsPrintLayout(project)
-
-        doc = QDomDocument()
-        with open(self.template_path, encoding="utf-8") as f:
-            success = doc.setContent(f.read())
-
-        if not success:
-            raise RuntimeError(f"Invalid QPT template: {self.template_path}")
-
-        context = QgsReadWriteContext()
-        _, ok = layout.loadFromTemplate(doc, context, clearExisting=True)
-
-        if not ok:
-            raise RuntimeError(f"Failed to load template: {self.template_path}")
-
-        return layout
+        return create_layout_from_template(
+            project=project, template_path=self.template_path, layout_name="LegendLayout", register_in_manager=False
+        )
 
 
 class LegendLayoutBuilder:
@@ -246,30 +234,12 @@ class LegendLayoutBuilder:
 
     def _get_layout_items(self) -> "LegendLayoutBuilder.LegendLayoutItems":
         """Retrieve and return all required layout items from the template."""
-        legend = cast(
-            QgsLayoutItemLegend | None,
-            self.layout.itemById("legend"),
-        )
-        title_item = cast(
-            QgsLayoutItemLabel | None,
-            self.layout.itemById("title"),
-        )
-        author_item = cast(
-            QgsLayoutItemLabel | None,
-            self.layout.itemById("author"),
-        )
-        date_item = cast(
-            QgsLayoutItemLabel | None,
-            self.layout.itemById("date"),
-        )
-        logo_item = cast(
-            QgsLayoutItemPicture | None,
-            self.layout.itemById("logo"),
-        )
-        page_item = cast(
-            QgsLayoutItemLabel | None,
-            self.layout.itemById("page"),
-        )
+        legend = get_optional_item(self.layout, "legend", QgsLayoutItemLegend)
+        title_item = get_optional_item(self.layout, "title", QgsLayoutItemLabel)
+        author_item = get_optional_item(self.layout, "author", QgsLayoutItemLabel)
+        date_item = get_optional_item(self.layout, "date", QgsLayoutItemLabel)
+        logo_item = get_optional_item(self.layout, "logo", QgsLayoutItemPicture)
+        page_item = get_optional_item(self.layout, "page", QgsLayoutItemLabel)
         return self.LegendLayoutItems(
             legend=legend,
             title_item=title_item,
@@ -358,32 +328,21 @@ class LegendLayoutBuilder:
     ):
         """Setup the text items in the layout."""
         # Set up title
-        if title_item:
-            title_item.setText(self.title)
-            title_item.setVisible(True)
+        apply_label_text(title_item, self.title)
+
         # Set up page number
         if page_item:
             page_item.setText(f"{page_number}/{total_pages}")
             page_item.setVisible(True)
 
         # Set up author
-        if author_item:
-            author_item.setText(f"Auteur: {self.author}")
-            author_item.setVisible(True)
+        apply_label_text(author_item, f"Auteur: {self.author}")
 
         # Set up date
-        if date_item:
-            date_item.setText(datetime.now().strftime("%d/%m/%Y"))
-            date_item.setVisible(True)
+        apply_label_text(date_item, display_date_str())
 
         # Set up logo
-        if logo_item:
-            if self.logo_path:
-                logo_item.setPicturePath(str(self.logo_path))
-                logo_item.refresh()
-                logo_item.setVisible(True)
-            else:
-                logo_item.setVisible(False)
+        apply_logo(logo_item, self.logo_path)
 
 
 class PdfPageExporter:
@@ -396,14 +355,17 @@ class PdfPageExporter:
 
     def export(self, layout: QgsPrintLayout, output_path: Path) -> None:
         """Export layout to PDF."""
-        exporter = QgsLayoutExporter(layout)
-        settings = QgsLayoutExporter.PdfExportSettings()
-        settings.dpi = self.config.dpi
+        # Create options for PDF export
+        options = PdfExportOptions(
+            dpi=self.config.dpi,
+            write_geopdf=False,
+            force_vector_output=False,
+            export_layers_as_vectors=False,
+            export_metadata=False,
+        )
 
-        result = exporter.exportToPdf(str(output_path), settings)
-
-        if result != QgsLayoutExporter.Success:
-            raise RuntimeError(f"PDF export failed with code={result}")
+        # Use common export function
+        export_layout_to_pdf(layout=layout, output_path=output_path, options=options)
 
 
 class PdfMergerService:

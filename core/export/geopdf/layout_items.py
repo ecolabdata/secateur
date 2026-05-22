@@ -4,69 +4,38 @@ Layout items utility for GeoPDF export.
 This module provides helper functions for handling layout items in GeoPDF exports.
 """
 
-from dataclasses import dataclass
-from typing import TypeVar
+from qgis.core import QgsPrintLayout
 
-from qgis.core import (
-    QgsLayoutItem,
-    QgsLayoutItemLabel,
-    QgsLayoutItemMap,
-    QgsLayoutItemPicture,
-    QgsPrintLayout,
-)
-
-T = TypeVar("T", bound=QgsLayoutItem)
+from ...export.pdf.common.layout_items import get_required_item
 
 
-@dataclass(slots=True)
-class ReportLayoutItems:
-    """Container for commonly accessed layout items in a GeoPDF report.
-
-    Attributes:
-        map_item: The map frame item (required).
-        title_item: Title label item.
-        author_item: Author label item.
-        date_item: Date label item.
-        logo_item: Logo picture item.
-    """
-
-    map_item: QgsLayoutItemMap
-    title_item: QgsLayoutItemLabel
-    author_item: QgsLayoutItemLabel
-    date_item: QgsLayoutItemLabel
-    logo_item: QgsLayoutItemPicture
-
-
-def resolve_layout_items(layout: QgsPrintLayout) -> ReportLayoutItems:
+def resolve_layout_items(layout: QgsPrintLayout):
     """Retrieve and validate all required layout items from a ``QgsPrintLayout``.
 
     Raises:
         ValueError: If any required item is missing.
         TypeError: If an item is not of the expected ``QgsLayoutItem`` subclass.
     """
-
-    # Helper to fetch and assert type
-    def _get_item(
-        item_id: str,
-        expected_type: type[T],
-    ) -> T:
-        item = layout.itemById(item_id)
-        if item is None:
-            raise ValueError(f"Layout item '{item_id}' not found")
-        if not isinstance(item, expected_type):
-            raise TypeError(f"Layout item '{item_id}' is not a {expected_type.__name__}, got {type(item).__name__}")
-        return item
-
-    map_item = _get_item("Map 1", QgsLayoutItemMap)
-    title_item = _get_item("title", QgsLayoutItemLabel)
-    author_item = _get_item("author", QgsLayoutItemLabel)
-    date_item = _get_item("date", QgsLayoutItemLabel)
-    logo_item = _get_item("logo", QgsLayoutItemPicture)
-
-    return ReportLayoutItems(
-        map_item=map_item,
-        title_item=title_item,
-        author_item=author_item,
-        date_item=date_item,
-        logo_item=logo_item,
+    # Import here to avoid circular imports
+    from qgis.core import (
+        QgsLayoutItemLabel,
+        QgsLayoutItemMap,
+        QgsLayoutItemPicture,
     )
+
+    map_item = get_required_item(layout, "Map 1", QgsLayoutItemMap)
+    title_item = get_required_item(layout, "title", QgsLayoutItemLabel)
+    author_item = get_required_item(layout, "author", QgsLayoutItemLabel)
+    date_item = get_required_item(layout, "date", QgsLayoutItemLabel)
+    logo_item = get_required_item(layout, "logo", QgsLayoutItemPicture)
+
+    # Create a simple namespace-like object to represent the layout items
+    class ReportLayoutItems:
+        def __init__(self, map_item, title_item, author_item, date_item, logo_item):
+            self.map_item = map_item
+            self.title_item = title_item
+            self.author_item = author_item
+            self.date_item = date_item
+            self.logo_item = logo_item
+
+    return ReportLayoutItems(map_item, title_item, author_item, date_item, logo_item)

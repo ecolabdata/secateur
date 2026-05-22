@@ -18,6 +18,12 @@ def timestamp_str() -> str:
     return datetime.now().strftime("%Y_%m_%d_%Hh_%Mmin")
 
 
+def display_date_str() -> str:
+    """Renvoie la date courante au format « dd/mm/YYYY » utilisé dans les
+    layouts (legende et GeoPDF)."""
+    return datetime.now().strftime("%d/%m/%Y")
+
+
 def _format_value(val):
     """Format various QGIS attribute values into string representations.
 
