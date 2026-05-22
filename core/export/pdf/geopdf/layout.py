@@ -18,7 +18,7 @@ from qgis.core import (
 from ....logger import logger
 from ..common.metadata import apply_label_text, apply_logo
 from ..common.template_loader import create_layout_from_template as load_layout_from_template
-from .layout_items import resolve_layout_items
+from .items import resolve_layout_items
 
 
 def populate_layout_texts(items, title: str, author: str, date_hm: str) -> None:
