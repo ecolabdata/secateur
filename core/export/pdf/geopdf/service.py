@@ -98,7 +98,7 @@ class GeoPdfExportService:
         if not self.config.export_legend:
             return
         try:
-            from ....legend_exporter import export_legend
+            from ..legend import export_legend
 
             legend_output_path = (
                 self.config.output_path.parent
@@ -108,7 +108,6 @@ class GeoPdfExportService:
             root = self.project.layerTreeRoot()
             with temporary_visible_layers(root, result_layers, None, feedback) as layer_names:
                 export_legend(
-                    template_path=str(self.config.legend_template_path),
                     output_path=str(legend_output_path),
                     layer_names=layer_names,
                     logo_path=str(self.config.logo_path) if self.config.logo_path else None,

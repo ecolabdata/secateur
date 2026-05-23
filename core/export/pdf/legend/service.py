@@ -3,13 +3,12 @@ from tempfile import TemporaryDirectory
 
 from qgis.core import QgsProject
 
-# Reuse pagination utilities from legacy module
-from ....legend_exporter import LegendItemCounter, LegendPaginationService
 from ..common.models import PdfExportOptions
 from ..common.pdf_export import export_layout_to_pdf
 from .config import LegendExportConfig
 from .items import LegendLayoutItems  # noqa: F401 (imported for type hinting if needed)
 from .layout import build_legend_layout
+from .pagination import LegendItemCounter, LegendPaginationService
 
 
 class PdfMergerService:

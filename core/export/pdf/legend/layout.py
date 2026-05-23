@@ -63,12 +63,17 @@ def build_legend_layout(
 
     items = resolve_layout_items(layout)
 
-    # Configure legend with a fresh tree built safely
-    configure_legend(
+    # IMPORTANT:
+    # Keep Python reference alive for the entire layout lifetime.
+    # Prevents SIP/QGIS crashes during export/destruction.
+    legend_root = configure_legend(
         legend=items.legend,
         project=project,
         layer_names=layer_names,
     )
+
+    # Persist reference on layout object
+    layout._secateur_legend_root = legend_root
 
     _populate_metadata(
         items,
@@ -82,4 +87,5 @@ def build_legend_layout(
     from ..common.lifecycle.refresh import stabilize_layout
 
     stabilize_layout(layout)
+
     return layout

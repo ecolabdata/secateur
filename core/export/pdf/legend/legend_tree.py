@@ -32,7 +32,7 @@ def build_legend_tree(*, project: QgsProject, layer_names: list[str]) -> QgsLaye
     return root
 
 
-def configure_legend(*, legend: QgsLayoutItemLegend, project: QgsProject, layer_names: list[str]) -> None:
+def configure_legend(*, legend: QgsLayoutItemLegend, project: QgsProject, layer_names: list[str]) -> QgsLayerTree:
     """Configure *legend* with a fresh layer tree built from *layer_names*.
 
     The function disables automatic model updates, sets the newly built tree as the
@@ -47,3 +47,4 @@ def configure_legend(*, legend: QgsLayoutItemLegend, project: QgsProject, layer_
     legend.updateLegend()
     legend.refresh()
     legend.adjustBoxSize()
+    return root
