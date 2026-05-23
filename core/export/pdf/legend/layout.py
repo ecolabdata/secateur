@@ -72,7 +72,8 @@ def build_legend_layout(
         layer_names=layer_names,
     )
 
-    # Persist reference on layout object
+    # Strong Python reference required.
+    # QgsLayoutItemLegend does NOT safely retain the SIP wrapper lifetime.
     layout._secateur_legend_root = legend_root
 
     _populate_metadata(
