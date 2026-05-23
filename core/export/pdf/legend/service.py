@@ -11,18 +11,16 @@ from .layout import build_legend_layout
 from .pagination import LegendItemCounter, LegendPaginationService
 
 
-class PdfMergerService:
+def merge_pdfs(pdf_paths: list[Path], output_path: Path) -> None:
     """Merges individual PDF pages into a single PDF."""
+    from pypdf import PdfWriter  # type: ignore
 
-    def merge(self, pdf_paths: list[Path], output_path: Path) -> None:
-        from pypdf import PdfWriter  # type: ignore
-
-        writer = PdfWriter()
-        for pdf_path in pdf_paths:
-            writer.append(str(pdf_path))
-        with open(output_path, "wb") as f:
-            writer.write(f)
-        writer.close()
+    writer = PdfWriter()
+    for pdf_path in pdf_paths:
+        writer.append(str(pdf_path))
+    with open(output_path, "wb") as f:
+        writer.write(f)
+    writer.close()
 
 
 class LegendExportService:
@@ -68,5 +66,5 @@ class LegendExportService:
                     options=options,
                 )
                 page_paths.append(page_path)
-            PdfMergerService().merge(page_paths, self.config.output_path)
+            merge_pdfs(page_paths, self.config.output_path)
         return str(self.config.output_path)
