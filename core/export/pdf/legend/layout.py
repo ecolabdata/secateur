@@ -114,5 +114,7 @@ def build_legend_layout(
         total_pages=total_pages,
     )
 
-    layout.refresh()
+    from ..common.lifecycle.refresh import stabilize_layout
+
+    stabilize_layout(layout)
     return layout

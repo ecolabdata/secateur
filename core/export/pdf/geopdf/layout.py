@@ -63,20 +63,24 @@ def build_report_layout(
         project=project,
         template_path=Path(template_path),
         layout_name=layout_name,
-        register_in_manager=True,
+        register_in_manager=False,
     )
 
     # Resolve layout items
     items = resolve_layout_items(layout)
     # Configure map geometry
     configure_layout_map(map_item=items.map_item, extent_rect=extent_rect)
-    layout.refresh()
+    from ..common.lifecycle.refresh import stabilize_layout
+
+    stabilize_layout(layout)
 
     # Populate dynamic text fields
     populate_layout_texts(items, title=title, author=author, date_hm=date_hm or "")
     # Populate optional logo
     populate_layout_logo(items, logo_path=logo_path)
-    layout.refresh()
+    from ..common.lifecycle.refresh import stabilize_layout
+
+    stabilize_layout(layout)
     return layout
 
 

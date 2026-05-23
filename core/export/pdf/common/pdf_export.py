@@ -54,14 +54,10 @@ def export_layout_to_pdf(
     exporter = QgsLayoutExporter(layout)
     settings = build_pdf_export_settings(options)
 
-    # Refresh layout
-    layout.refresh()
-    exporter.layout().refresh()
+    # Centralized layout stabilization and Qt event processing
+    from .lifecycle.refresh import stabilize_layout
 
-    # Process Qt events
-    from qgis.PyQt.QtWidgets import QApplication
-
-    QApplication.processEvents()
+    stabilize_layout(layout)
 
     if len(layout.items()) == 0:
         raise RuntimeError("Layout contains no items; template may have failed to load.")
@@ -72,7 +68,10 @@ def export_layout_to_pdf(
         settings.writeGeoPdf = False
         result = exporter.exportToPdf(str(output_path), settings)
 
-    QApplication.processEvents()
+    # Perform deterministic cleanup after export
+    from .lifecycle.cleanup import finalize_export_cycle
+
+    finalize_export_cycle()
     if result != QgsLayoutExporter.Success:
         error_msg = exporter.errorMessage() if hasattr(exporter, "errorMessage") else ""
         error_file = exporter.errorFile() if hasattr(exporter, "errorFile") else ""
