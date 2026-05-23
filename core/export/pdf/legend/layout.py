@@ -66,15 +66,12 @@ def build_legend_layout(
     # IMPORTANT:
     # Keep Python reference alive for the entire layout lifetime.
     # Prevents SIP/QGIS crashes during export/destruction.
-    legend_root = configure_legend(
+    configure_legend(
         legend=items.legend,
+        layout=layout,
         project=project,
         layer_names=layer_names,
     )
-
-    # Strong Python reference required.
-    # QgsLayoutItemLegend does NOT safely retain the SIP wrapper lifetime.
-    layout._secateur_legend_root = legend_root
 
     _populate_metadata(
         items,

@@ -7,7 +7,7 @@ lead to dangling SIP objects.
 
 import textwrap
 
-from qgis.core import QgsLayerTree, QgsLayoutItemLegend, QgsProject
+from qgis.core import QgsLayerTree, QgsLayoutItemLegend, QgsPrintLayout, QgsProject
 
 
 def build_legend_tree(*, project: QgsProject, layer_names: list[str]) -> QgsLayerTree:
@@ -32,19 +32,31 @@ def build_legend_tree(*, project: QgsProject, layer_names: list[str]) -> QgsLaye
     return root
 
 
-def configure_legend(*, legend: QgsLayoutItemLegend, project: QgsProject, layer_names: list[str]) -> QgsLayerTree:
+def configure_legend(
+    *,
+    legend: QgsLayoutItemLegend,
+    layout: QgsPrintLayout,
+    project: QgsProject,
+    layer_names: list[str],
+) -> None:
     """Configure *legend* with a fresh layer tree built from *layer_names*.
 
     The function disables automatic model updates, sets the newly built tree as the
     root group, and performs the recommended refresh sequence for QGIS 3.34.
-    No Python reference to the tree is retained after the call.
     """
     legend.setAutoUpdateModel(False)
-    root = build_legend_tree(project=project, layer_names=layer_names)
-    legend.model().setRootGroup(root)
-    # Recommended refresh order for QGIS 3.34
+
+    legend_root = build_legend_tree(
+        project=project,
+        layer_names=layer_names,
+    )
+
+    legend.model().setRootGroup(legend_root)
+
+    # Keep strong Python ownership alive for the whole layout lifecycle.
+    layout._secateur_legend_root = legend_root
+
     legend.invalidateCache()
     legend.updateLegend()
     legend.refresh()
     legend.adjustBoxSize()
-    return root
