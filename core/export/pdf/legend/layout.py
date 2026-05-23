@@ -1,9 +1,6 @@
-import textwrap
 from pathlib import Path
 
 from qgis.core import (
-    QgsLayerTree,
-    QgsLayoutItemLegend,
     QgsPrintLayout,
     QgsProject,
 )
@@ -15,36 +12,7 @@ from .items import (
     LegendLayoutItems,
     resolve_layout_items,
 )
-
-
-def _build_legend_tree(
-    project: QgsProject,
-    layer_names: list[str],
-) -> QgsLayerTree:
-    root = QgsLayerTree()
-    root.setName("LegendRoot")
-
-    for layer_name in layer_names:
-        layers = project.mapLayersByName(layer_name)
-        if not layers:
-            continue
-        layer = layers[0]
-        node = root.addLayer(layer)
-        wrapped_name = "\n".join(textwrap.wrap(node.name(), width=100))
-        node.setName(wrapped_name)
-    return root
-
-
-def _configure_legend(
-    legend: QgsLayoutItemLegend,
-    root: QgsLayerTree,
-) -> None:
-    legend.setAutoUpdateModel(False)
-    legend.model().setRootGroup(root)
-    legend.invalidateCache()
-    legend.updateLegend()
-    legend.refresh()
-    legend.adjustBoxSize()
+from .legend_tree import configure_legend
 
 
 def _populate_metadata(
@@ -95,14 +63,11 @@ def build_legend_layout(
 
     items = resolve_layout_items(layout)
 
-    root = _build_legend_tree(
-        project,
-        layer_names,
-    )
-
-    _configure_legend(
-        items.legend,
-        root,
+    # Configure legend with a fresh tree built safely
+    configure_legend(
+        legend=items.legend,
+        project=project,
+        layer_names=layer_names,
     )
 
     _populate_metadata(

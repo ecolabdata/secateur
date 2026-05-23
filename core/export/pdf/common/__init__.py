@@ -6,7 +6,7 @@ from .layout.metadata import apply_label_text, apply_logo, inject_basic_metadata
 from .layout.visibility import temporary_visible_layers
 from .models import LayoutMetadata, PdfExportOptions
 from .pdf_export import build_pdf_export_settings, export_layout_to_pdf
-from .qgis_utils import force_qgis_gc, process_qt_events, safe_refresh_layout
+from .qgis_utils import force_qgis_gc, process_qt_events
 from .template_loader import create_layout_from_template
 
 __all__ = [
@@ -22,7 +22,6 @@ __all__ = [
     "PdfExportOptions",
     "temporary_visible_layers",
     "process_qt_events",
-    "safe_refresh_layout",
     "force_qgis_gc",
     "compute_export_extent",
     "get_source_vector_layer",
