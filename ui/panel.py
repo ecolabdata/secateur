@@ -1,7 +1,8 @@
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
+from typing import Any
 
-from qgis.core import QgsMapLayerProxyModel, QgsProcessingFeedback, QgsVectorLayer
+from qgis.core import QgsMapLayer, QgsMapLayerProxyModel, QgsProcessingFeedback, QgsVectorLayer
 from qgis.gui import QgsMapLayerComboBox
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import (
@@ -56,12 +57,12 @@ class _SecateurState:
     # - contains only layer IDs
     result_layer_ids: list[str] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert isinstance(self.result_layer_ids, list)
 
 
 class SecateurPanel(QDockWidget):
-    def __init__(self, iface, parent=None):
+    def __init__(self, iface: Any, parent: QWidget | None = None) -> None:
         super().__init__("Ecosphères Secateur", parent or iface.mainWindow())
         self.iface = iface
 
@@ -76,7 +77,7 @@ class SecateurPanel(QDockWidget):
         self._build_ui()
 
     # UI construction identical (unchanged)
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         container = QWidget()
         layout = QVBoxLayout(container)
 
@@ -160,13 +161,13 @@ class SecateurPanel(QDockWidget):
 
         self._update_ui_state()
 
-    def _update_ui_state(self):
+    def _update_ui_state(self) -> None:
         has_results = bool(self._resolve_result_layers())
 
         self.csv_frame.setEnabled(has_results)
         self.geopdf_frame.setEnabled(has_results)
 
-    def _set_status(self, message, level="info"):
+    def _set_status(self, message: str | None, level: str = "info") -> None:
         if message:
             self.status_label.setText(message)
 
@@ -184,16 +185,16 @@ class SecateurPanel(QDockWidget):
 
         return LayerResolver.get_vector(self.state.selected_layer_id)
 
-    def _resolve_result_layers(self):
+    def _resolve_result_layers(self) -> list[QgsMapLayer]:
         return LayerResolver.get_many(self.state.result_layer_ids)
 
-    def _resolve_basemap(self):
+    def _resolve_basemap(self) -> QgsMapLayer | None:
         if not self._selected_basemap_id:
             return None
 
         return LayerResolver.get(self._selected_basemap_id)
 
-    def _open_settings_dialog(self):
+    def _open_settings_dialog(self) -> None:
         dlg = SettingsDialog(self.settings, self.image_manager, self)
 
         try:
@@ -225,7 +226,7 @@ class SecateurPanel(QDockWidget):
             # erreurs inattendues (IO, filesystem, etc.)
             self._set_status(f"Erreur inattendue : {e}", "error")
 
-    def _on_basemap_selected(self, layer):
+    def _on_basemap_selected(self, layer: QgsMapLayer | None) -> None:
         if layer is None:
             self._selected_basemap_id = None
             self._set_status("Fond de carte non sélectionné.", "warning")
@@ -238,7 +239,7 @@ class SecateurPanel(QDockWidget):
     #  Execution
     # ──────────────────────────────────────────────
 
-    def _execute(self):
+    def _execute(self) -> None:
         # Use a context manager to guarantee cursor restoration
         # even if an exception occurs or the function returns early.
 
@@ -263,7 +264,7 @@ class SecateurPanel(QDockWidget):
             self.run_button.setEnabled(True)
             self._feedback = None
 
-    def _run_process(self):
+    def _run_process(self) -> ProcessResult:
         selected_layer = self._resolve_selected_layer()
 
         if selected_layer is None:
@@ -294,7 +295,7 @@ class SecateurPanel(QDockWidget):
         self._finish_progress(result.message)
         return result
 
-    def _on_export_csv(self):
+    def _on_export_csv(self) -> None:
         if not self._verify_results_exist():
             return
 
@@ -309,7 +310,7 @@ class SecateurPanel(QDockWidget):
             lambda: self._execute_csv_export(folder),
         )
 
-    def _execute_csv_export(self, folder: str):
+    def _execute_csv_export(self, folder: str) -> None:
         feedback = self._create_feedback()
 
         try:
@@ -336,7 +337,7 @@ class SecateurPanel(QDockWidget):
         finally:
             self._end_busy_ui()
 
-    def _on_export_pdf(self):
+    def _on_export_pdf(self) -> None:
         if not self._verify_results_exist():
             return
 
@@ -357,7 +358,7 @@ class SecateurPanel(QDockWidget):
             lambda: self._execute_pdf_export(folder, title),
         )
 
-    def _execute_pdf_export(self, folder: str, title: str):
+    def _execute_pdf_export(self, folder: str, title: str) -> None:
         feedback = self._create_feedback()
         try:
             with wait_cursor():
@@ -389,7 +390,7 @@ class SecateurPanel(QDockWidget):
         finally:
             self._end_busy_ui()
 
-    def _invalidate_results(self):
+    def _invalidate_results(self) -> None:
         self.state.result_layer_ids = []
 
         self._update_ui_state()
@@ -399,7 +400,7 @@ class SecateurPanel(QDockWidget):
             "warning",
         )
 
-    def _verify_results_exist(self):
+    def _verify_results_exist(self) -> bool:
         layers = self._resolve_result_layers()
 
         if not layers:
@@ -409,25 +410,25 @@ class SecateurPanel(QDockWidget):
         return True
 
     # Progress unchanged
-    def _create_feedback(self):
+    def _create_feedback(self) -> QgsProcessingFeedback:
         return QgsProcessingFeedback()
 
-    def _finish_progress(self, text):
+    def _finish_progress(self, text: str) -> None:
         self._set_status(text, "info")
 
-    def _cancel_feedback(self):
+    def _cancel_feedback(self) -> None:
         if self._feedback:
             with suppress(Exception):
                 self._feedback.cancel()
 
-    def _begin_busy_ui(self, message: str):
+    def _begin_busy_ui(self, message: str) -> None:
         self.run_button.setEnabled(False)
         self.export_pdf_button.setEnabled(False)
         self.export_csv_button.setEnabled(False)
 
         self._set_status(message, "info")
 
-    def _end_busy_ui(self):
+    def _end_busy_ui(self) -> None:
         self.run_button.setEnabled(True)
         self.export_pdf_button.setEnabled(bool(self._resolve_result_layers()))
         self.export_csv_button.setEnabled(bool(self._resolve_result_layers()))

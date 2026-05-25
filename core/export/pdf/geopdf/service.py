@@ -30,7 +30,7 @@ from .layout import build_report_layout
 class GeoPdfExportService:
     """Service for orchestrating GeoPDF exports."""
 
-    def __init__(self, project: QgsProject, config: GeoPdfExportConfig):
+    def __init__(self, project: QgsProject, config: GeoPdfExportConfig) -> None:
         """Initialize the export service with project and configuration."""
         self.project = project
         self.config = config
