@@ -10,6 +10,7 @@ from pathlib import Path
 
 from qgis.core import (
     QgsLayoutItemMap,
+    QgsMapLayer,
     QgsPrintLayout,
     QgsProject,
     QgsRectangle,
@@ -48,6 +49,8 @@ def build_report_layout(
     template_path: str,
     date_hm: str | None,
     extent_rect: QgsRectangle,
+    result_layers: list[QgsMapLayer],
+    basemap_layer: QgsMapLayer | None,
     logo_path: str | None,
     title: str,
     author: str,
@@ -69,7 +72,12 @@ def build_report_layout(
     # Resolve layout items
     items = resolve_layout_items(layout)
     # Configure map geometry
-    configure_layout_map(map_item=items.map_item, extent_rect=extent_rect)
+    configure_layout_map(
+        map_item=items.map_item,
+        extent_rect=extent_rect,
+        result_layers=result_layers,
+        basemap_layer=basemap_layer,
+    )
     from ..common.lifecycle.refresh import stabilize_layout
 
     stabilize_layout(layout)
@@ -84,7 +92,12 @@ def build_report_layout(
     return layout
 
 
-def configure_layout_map(map_item: QgsLayoutItemMap, extent_rect: QgsRectangle) -> None:
+def configure_layout_map(
+    map_item: QgsLayoutItemMap,
+    extent_rect: QgsRectangle,
+    result_layers: list[QgsMapLayer],
+    basemap_layer: QgsMapLayer | None,
+) -> None:
     """Configure the map item in the layout from template.
 
     Adjusts the geographic extent to match the aspect ratio of the map frame
@@ -158,7 +171,8 @@ def configure_layout_map(map_item: QgsLayoutItemMap, extent_rect: QgsRectangle) 
     # ------------------------------------------------------------------
 
     map_item.setAtlasDriven(False)
-    map_item.setKeepLayerSet(False)
+    # Explicitly lock the layer set to the layers we provide
+    map_item.setKeepLayerSet(True)
     map_item.setKeepLayerStyles(False)
 
     # ------------------------------------------------------------------
@@ -166,6 +180,19 @@ def configure_layout_map(map_item: QgsLayoutItemMap, extent_rect: QgsRectangle) 
     # ------------------------------------------------------------------
 
     map_item.zoomToExtent(adjusted_extent)
+
+    # ------------------------------------------------------------------
+    # Explicitly set the layers that should be rendered in the map item
+    # ------------------------------------------------------------------
+    # Result layers must be drawn above the basemap.
+    # In QGIS the first layer in the list is rendered on top, so we add the
+    # result layers first and the optional basemap last.
+    layers_for_map: list[QgsMapLayer] = []
+    layers_for_map.extend(result_layers)
+    if basemap_layer is not None:
+        layers_for_map.append(basemap_layer)
+    map_item.setLayers(layers_for_map)
+    # Keep the layer set locked – we already setKeepLayerSet(True) above
 
     # Force redraw
     map_item.refresh()

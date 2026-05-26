@@ -67,28 +67,28 @@ class GeoPdfExportService:
     ) -> "QgsLayout":
         """Create and configure the QGIS layout for the export, handling visibility of result layers."""
         update_feedback(feedback, 0, "Préparation de l'export PDF…")
-        root = self.project.layerTreeRoot()
-        # Use temporary visibility for result layers and basemap during layout building
-        with temporary_visible_layers(root, result_layers, basemap_layer, feedback) as _:
-            template_path_obj = Path(self.config.template_path)
-            if not template_path_obj.is_file():
-                logger.error(f"Layout template not found: {template_path_obj}")
-                raise RuntimeError(f"Layout template not found: {template_path_obj}")
+        # Build layout without altering project layer visibility – the map item will use an explicit layer set
+        template_path_obj = Path(self.config.template_path)
+        if not template_path_obj.is_file():
+            logger.error(f"Layout template not found: {template_path_obj}")
+            raise RuntimeError(f"Layout template not found: {template_path_obj}")
 
-            layout = build_report_layout(
-                project=self.project,
-                template_path=str(self.config.template_path),
-                date_hm=display_date_str(),
-                extent_rect=extent_rect,
-                logo_path=str(self.config.logo_path) if self.config.logo_path else None,
-                title=self.config.title,
-                author=self.config.author,
-            )
-            update_feedback(feedback, 40, "Template QPT chargé")
-            update_feedback(feedback, 50, "Carte configurée")
-            update_feedback(feedback, 60, "Textes injectés")
-            update_feedback(feedback, 70, "Logo injecté")
-            return layout
+        layout = build_report_layout(
+            project=self.project,
+            template_path=str(self.config.template_path),
+            date_hm=display_date_str(),
+            extent_rect=extent_rect,
+            result_layers=result_layers,
+            basemap_layer=basemap_layer,
+            logo_path=str(self.config.logo_path) if self.config.logo_path else None,
+            title=self.config.title,
+            author=self.config.author,
+        )
+        update_feedback(feedback, 40, "Template QPT chargé")
+        update_feedback(feedback, 50, "Carte configurée")
+        update_feedback(feedback, 60, "Textes injectés")
+        update_feedback(feedback, 70, "Logo injecté")
+        return layout
 
     def _export_legend_if_needed(
         self, layout: "QgsLayout", result_layers: list[QgsMapLayer], feedback: QgsProcessingFeedback | None
@@ -126,13 +126,17 @@ class GeoPdfExportService:
         options = PdfExportOptions(
             dpi=self.config.dpi,
             write_geopdf=True,
-            force_vector_output=True,
+            # Raster basemap requires raster output; disable vector‑only mode
+            force_vector_output=False,
             export_layers_as_vectors=True,
             export_metadata=True,
         )
 
         output_path = Path(self.config.output_path)
         # Use common export function
+        # Ensure layout and map item are fully refreshed before exporting
+        layout.refresh()
+        layout.update()
         result_path = export_layout_to_pdf(layout=layout, output_path=output_path, options=options)
         update_feedback(feedback, 100, "Export terminé")
         return result_path
