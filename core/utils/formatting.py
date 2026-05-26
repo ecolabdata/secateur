@@ -7,6 +7,7 @@ Provides:
 
 import re
 from datetime import datetime
+from typing import Any
 
 from qgis.PyQt.QtCore import QDate, QDateTime, QTime  # noqa: UP035
 
@@ -24,7 +25,7 @@ def display_date_str() -> str:
     return datetime.now().strftime("%d/%m/%Y")
 
 
-def _format_value(val):
+def _format_value(val: Any) -> str | Any:
     """Format various QGIS attribute values into string representations.
 
     Handles ``None`` (returns empty string) and QDate/QDateTime/QTime objects,

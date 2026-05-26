@@ -87,10 +87,19 @@ class SecateurPanel(QDockWidget):
         container = QWidget()
         layout = QVBoxLayout(container)
 
-        layout.addWidget(QLabel("Sélectionner l'objet à intersecter :"))
+        doc_label = QLabel()
+        doc_label.setText(
+            "1. Sélectionner l'objet à intersecter.<br>"
+            'Vous ne savez pas comment faire : :\
+            <a href="https://github.com/ecolabdata/ecospheres/issues/1034"'
+            'style="color: blue;">lien vers la documentation</a>.'
+        )
+        doc_label.setOpenExternalLinks(True)
+        doc_label.setTextFormat(Qt.RichText)
+        layout.addWidget(doc_label)
 
         btn_row = QHBoxLayout()
-        self.run_button = QPushButton("Utiliser la géométrie active")
+        self.run_button = QPushButton("Réaliser l'intersection")
         self.run_button.clicked.connect(self._execute)
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
@@ -99,7 +108,7 @@ class SecateurPanel(QDockWidget):
         geopdf_frame.setFrameShape(QFrame.StyledPanel)
         geopdf_layout = QVBoxLayout(geopdf_frame)
 
-        geopdf_title_label = QLabel("Export GeoPDF")
+        geopdf_title_label = QLabel("Export PDF")
         geopdf_title_label.setStyleSheet("font-weight: bold;")
         geopdf_layout.addWidget(geopdf_title_label)
 
@@ -107,7 +116,6 @@ class SecateurPanel(QDockWidget):
 
         self.basemap_combo = QgsMapLayerComboBox()
         self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
-        self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
         geopdf_layout.addWidget(self.basemap_combo)
 
         raster_layers = self.service.get_available_raster_layers()
@@ -118,13 +126,13 @@ class SecateurPanel(QDockWidget):
 
         geopdf_layout.addWidget(QLabel("Modifier le titre :"))
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Titre du GeoPDF")
+        self.title_input.setPlaceholderText("Titre du PDF")
         self.title_input.setText(self.settings.pdf_title)
         geopdf_layout.addWidget(self.title_input)
 
         geopdf_row = QHBoxLayout()
 
-        self.export_pdf_button = QPushButton("Exporter le GeoPDF")
+        self.export_pdf_button = QPushButton("Exporter le PDF")
         self.export_pdf_button.clicked.connect(self._on_export_pdf)
         geopdf_row.addWidget(self.export_pdf_button)
 
@@ -165,6 +173,8 @@ class SecateurPanel(QDockWidget):
         self.csv_frame = csv_frame
         self.geopdf_frame = geopdf_frame
 
+        # At the end or block update signal
+        self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
         self._update_ui_state()
 
     def _update_ui_state(self) -> None:

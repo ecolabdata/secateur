@@ -25,7 +25,7 @@ def export_results_to_csv(
 
     written = []
 
-    def _write_csv(layer: QgsVectorLayer):
+    def _write_csv(layer: QgsMapLayer):
         """Callback used by :func:`iterate_layers` to write one CSV file.
 
         Non-vector layers are ignored.

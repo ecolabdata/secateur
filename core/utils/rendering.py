@@ -4,15 +4,18 @@ Exports:
 - is_simple_fill
 """
 
+from typing import Any
+
 from qgis.core import (
     QgsCategorizedSymbolRenderer,
     QgsFillSymbol,
     QgsRenderContext,
     QgsSingleSymbolRenderer,
+    QgsVectorLayer,
 )
 
 
-def set_layer_opacity(layer, opacity):
+def set_layer_opacity(layer: Any, opacity: float) -> None:
     """Set the opacity of a layer's renderer symbols.
 
     Supports ``QgsSingleSymbolRenderer`` and ``QgsCategorizedSymbolRenderer``.
@@ -30,7 +33,7 @@ def set_layer_opacity(layer, opacity):
             symbol.setOpacity(opacity)
 
 
-def is_simple_fill(layer):
+def is_simple_fill(layer: QgsVectorLayer) -> bool:
     """Determine if a layer's renderer uses only simple fill symbols.
 
     Returns ``True`` when the renderer is a ``QgsSingleSymbolRenderer`` with a

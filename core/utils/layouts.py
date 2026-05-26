@@ -4,16 +4,16 @@ Exports:
 - create_layout
 """
 
-from qgis.core import QgsPrintLayout
+from qgis.core import QgsLayoutManager, QgsPrintLayout, QgsProject
 
 
-def clean_layouts(manager):
+def clean_layouts(manager: QgsLayoutManager) -> None:
     """Remove all existing layouts to avoid C++ errors."""
     for layout in manager.printLayouts():
         manager.removeLayout(layout)
 
 
-def create_layout(project, manager, name):
+def create_layout(project: QgsProject, manager: QgsLayoutManager, name: str) -> QgsPrintLayout:
     """Create a new named ``QgsPrintLayout`` after removing any existing layout with the same name."""
     existing = manager.layoutByName(name)
     if existing:

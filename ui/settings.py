@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import Qt
@@ -12,8 +13,10 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
+from ..core.image_manager import ImageManager
 from ..core.utils.path import get_icon_path
 
 
@@ -79,7 +82,7 @@ class SettingsManager:
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, settings, image_manager, parent=None):
+    def __init__(self, settings: SettingsManager, image_manager: ImageManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.settings = settings
@@ -126,7 +129,7 @@ class SettingsDialog(QDialog):
         self._selected_logo = None
         self._set_logo_display(self.settings.logo_path)
 
-    def _select_logo(self):
+    def _select_logo(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Choisir un logo",
@@ -149,13 +152,13 @@ class SettingsDialog(QDialog):
             self.logo_label.setText(f"{str(err)}")
             self._selected_logo = None
 
-    def get_values(self):
+    def get_values(self) -> dict[str, Any]:
         return {
             "author": self.author_input.text().strip(),
             "logo": self._selected_logo,
         }
 
-    def _display_logo_name(self, path):
+    def _display_logo_name(self, path: str) -> str:
         return path.split("/")[-1] if path else "Aucun logo"
 
     def _set_logo_display(self, path: str):

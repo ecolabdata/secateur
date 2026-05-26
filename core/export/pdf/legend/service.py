@@ -26,7 +26,7 @@ def merge_pdfs(pdf_paths: list[Path], output_path: Path) -> None:
 class LegendExportService:
     """Orchestrates legend export across paginated layouts."""
 
-    def __init__(self, project: QgsProject, config: LegendExportConfig):
+    def __init__(self, project: QgsProject, config: LegendExportConfig) -> None:
         self.project = project
         self.config = config
         self.counter = LegendItemCounter()

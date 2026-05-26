@@ -2,10 +2,10 @@
 Extent calculation utilities shared across PDF exporters.
 """
 
-from qgis.core import QgsRectangle, QgsVectorLayer
+from qgis.core import QgsMapLayer, QgsRectangle, QgsVectorLayer
 
 
-def get_source_vector_layer(result_layers):
+def get_source_vector_layer(result_layers: list[QgsMapLayer]) -> QgsVectorLayer:
     """Validate *result_layers* for PDF export.
 
     Raises ``ValueError`` if the list is empty and ``TypeError`` if the first

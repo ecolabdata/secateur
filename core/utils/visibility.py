@@ -23,7 +23,7 @@ def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -
 
 
 @contextmanager
-def clear_all_visibility(root):
+def clear_all_visibility(root: QgsLayerTreeGroup):
     """Hide all layers for the duration of the context.
 
     Visibility changes performed inside the context are kept; original state is not restored.

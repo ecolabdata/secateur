@@ -1,7 +1,14 @@
 from contextlib import suppress
 
 import processing  # type: ignore
-from qgis.core import QgsProcessingContext, QgsProcessingFeedback, QgsProject, QgsRasterLayer, QgsVectorLayer
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsProcessingContext,
+    QgsProcessingFeedback,
+    QgsProject,
+    QgsRasterLayer,
+    QgsVectorLayer,
+)
 
 from .utils.layers import filter_out_source, get_results_group
 
@@ -10,7 +17,12 @@ from .utils.layers import filter_out_source, get_results_group
 # ──────────────────────────────────────────────
 
 
-def _reproject_layer(layer, target_crs, feedback=None, context=None):
+def _reproject_layer(
+    layer: QgsVectorLayer | QgsRasterLayer,
+    target_crs: QgsCoordinateReferenceSystem,
+    feedback: QgsProcessingFeedback | None = None,
+    context: QgsProcessingContext | None = None,
+) -> QgsVectorLayer | QgsRasterLayer:
     """
     Reprojette une couche (vecteur ou raster) vers target_crs.
     Retourne une couche en mémoire (memory) avec le CRS cible.
@@ -60,7 +72,11 @@ def _reproject_layer(layer, target_crs, feedback=None, context=None):
 # ──────────────────────────────────────────────
 
 
-def intersect_layer(source_layer, layers, feedback: QgsProcessingFeedback | None = None):
+def intersect_layer(
+    source_layer: QgsVectorLayer,
+    layers: list[QgsVectorLayer | QgsRasterLayer],
+    feedback: QgsProcessingFeedback | None = None,
+) -> list[QgsVectorLayer]:
     results = []
     total = len(layers)
     project = QgsProject.instance()

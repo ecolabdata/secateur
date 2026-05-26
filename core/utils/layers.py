@@ -2,9 +2,14 @@
 Exports functions for group handling, layer discovery and iteration.
 """
 
+from collections.abc import Callable, Sequence
+from typing import TypeVar
+
 from qgis.core import (
     QgsLayerTreeGroup,
     QgsLayerTreeLayer,
+    QgsMapLayer,
+    QgsProcessingFeedback,
     QgsProject,
     QgsVectorLayer,
 )
@@ -12,8 +17,11 @@ from qgis.core import (
 from ..constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..logger import logger
 
+# Generic type for layer iteration (covariant)
+T = TypeVar("T", bound=QgsMapLayer, covariant=True)
 
-def get_or_create_group(path: list[str], clear: bool = False):
+
+def get_or_create_group(path: list[str], clear: bool = False) -> QgsLayerTreeGroup | None:
     """Return or create a :class:`QgsLayerTreeGroup`.
 
     *path* – list of group names representing the hierarchy.
@@ -53,14 +61,14 @@ def get_or_create_group(path: list[str], clear: bool = False):
     return group
 
 
-def get_results_group(clear: bool = False):
+def get_results_group(clear: bool = False) -> QgsLayerTreeGroup | None:
     """Return the "Résultats secateur" group, creating it if necessary.
     Pass ``clear=True`` to empty the group before returning.
     """
     return get_or_create_group([RESULT_GROUP_NAME], clear=clear)
 
 
-def get_created_objects_group(clear: bool = False):
+def get_created_objects_group(clear: bool = False) -> QgsLayerTreeGroup | None:
     """Return the "Objets créés" group, creating it if necessary.
     Pass ``clear=True`` to empty the group before returning.
     """
@@ -89,7 +97,7 @@ def find_layers(exclude: QgsVectorLayer | None = None) -> list[QgsVectorLayer]:
     return results
 
 
-def _collect_layers(group: QgsLayerTreeGroup, out: list[QgsVectorLayer], exclude):
+def _collect_layers(group: QgsLayerTreeGroup, out: list[QgsVectorLayer], exclude: QgsVectorLayer | None) -> None:
     """Recursively collect visible vector layers from *group* into *out*."""
     for child in group.children():
         if isinstance(child, QgsLayerTreeGroup):
@@ -103,7 +111,11 @@ def _collect_layers(group: QgsLayerTreeGroup, out: list[QgsVectorLayer], exclude
                 out.append(layer)
 
 
-def iterate_layers(layers, callback, feedback=None):
+def iterate_layers(
+    layers: Sequence[T],
+    callback: Callable[[T], None],
+    feedback: QgsProcessingFeedback | None = None,
+) -> None:
     """Iterate over *layers* and apply *callback* to each.
 
     ``feedback`` – optional :class:`QgsProcessingFeedback` instance.  If provided,
