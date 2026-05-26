@@ -13,7 +13,19 @@ from .pagination import LegendItemCounter, LegendPaginationService
 
 def merge_pdfs(pdf_paths: list[Path], output_path: Path) -> None:
     """Merges individual PDF pages into a single PDF."""
-    from pypdf import PdfWriter  # type: ignore
+
+    try:
+        from pypdf import PdfWriter  # type: ignore
+    except ImportError:
+        import sys
+        from pathlib import Path
+
+        # Compute the repository root's vendor directory relative to this file
+        repo_root = Path(__file__).resolve().parents[4]
+        vendor = repo_root / "vendor"
+        sys.path.insert(0, str(vendor))
+
+        from pypdf import PdfWriter  # type: ignore
 
     writer = PdfWriter()
     for pdf_path in pdf_paths:
