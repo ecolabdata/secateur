@@ -89,10 +89,10 @@ class SecateurPanel(QDockWidget):
 
         doc_label = QLabel()
         doc_label.setText(
-            "1. Sélectionner l'objet à intersecter.<br>"
-            'Vous ne savez pas comment faire : :\
-            <a href="https://github.com/ecolabdata/ecospheres/issues/1034"'
-            'style="color: blue;">lien vers la documentation</a>.'
+            "1. Sélectionner l'objet à intersecter "
+            '(<a href="https://github.com/ecolabdata/ecospheres/issues/1034"'
+            'style="color: blue;">lien vers la documentation</a>).<br> \
+            2. intersecter les couches.'
         )
         doc_label.setOpenExternalLinks(True)
         doc_label.setTextFormat(Qt.RichText)
