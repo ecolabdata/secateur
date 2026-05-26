@@ -1,6 +1,6 @@
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from qgis.core import QgsMapLayer, QgsMapLayerProxyModel, QgsProcessingFeedback, QgsVectorLayer
 from qgis.gui import QgsMapLayerComboBox
@@ -24,6 +24,12 @@ from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
 from .settings import SettingsDialog, SettingsManager
+
+
+@runtime_checkable
+class QgisInterfaceProtocol(Protocol):
+    def mainWindow(self) -> QWidget: ...
+    def activeLayer(self) -> Any: ...
 
 
 @contextmanager
@@ -62,7 +68,7 @@ class _SecateurState:
 
 
 class SecateurPanel(QDockWidget):
-    def __init__(self, iface: Any, parent: QWidget | None = None) -> None:
+    def __init__(self, iface: QgisInterfaceProtocol, parent: QWidget | None = None) -> None:
         super().__init__("Ecosphères Secateur", parent or iface.mainWindow())
         self.iface = iface
 
@@ -97,7 +103,7 @@ class SecateurPanel(QDockWidget):
         geopdf_title_label.setStyleSheet("font-weight: bold;")
         geopdf_layout.addWidget(geopdf_title_label)
 
-        geopdf_layout.addWidget(QLabel("Choisir un fond de carte :"))
+        geopdf_layout.addWidget(QLabel("Choisir un fond de carte (facultatif) :"))
 
         self.basemap_combo = QgsMapLayerComboBox()
         self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
@@ -140,9 +146,9 @@ class SecateurPanel(QDockWidget):
         csv_title_label.setStyleSheet("font-weight: bold;")
         csv_layout.addWidget(csv_title_label)
 
-        csv_layout.addWidget(QLabel("Exporter les tables de vérités :"))
+        csv_layout.addWidget(QLabel("Rapport tabulaire d’analyse de l’intersection :"))
 
-        self.export_csv_button = QPushButton("Export CSV")
+        self.export_csv_button = QPushButton("Exporter les CSV")
         self.export_csv_button.clicked.connect(self._on_export_csv)
         csv_layout.addWidget(self.export_csv_button)
 

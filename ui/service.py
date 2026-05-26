@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable
 
 from qgis.core import (
     QgsFeature,
+    QgsMapLayer,
     QgsProcessingFeedback,
     QgsProject,
     QgsRasterLayer,
@@ -52,6 +53,11 @@ class ProcessResult:
 # ──────────────────────────────────────────────
 
 
+@runtime_checkable
+class QgisInterfaceProtocol(Protocol):
+    def activeLayer(self) -> QgsMapLayer | None: ...
+
+
 class SecateurService:
     """
     Service métier.
@@ -59,7 +65,7 @@ class SecateurService:
     Conserve tous les effets de bord QGIS existants.
     """
 
-    def get_available_raster_layers(self):
+    def get_available_raster_layers(self) -> list[QgsRasterLayer]:
         """Get all raster layers available in the current project."""
         return [lyr for lyr in QgsProject.instance().mapLayers().values() if isinstance(lyr, QgsRasterLayer)]
 
@@ -67,7 +73,7 @@ class SecateurService:
     #  Selection
     # ──────────────────────────────────────────────
 
-    def select(self, iface) -> SelectionResult:
+    def select(self, iface: QgisInterfaceProtocol) -> SelectionResult:
         layer = iface.activeLayer()
 
         if layer is None:
@@ -93,7 +99,7 @@ class SecateurService:
 
         return SelectionResult(layer, None, f"Couche sélectionnée : {layer.name()}", "info")
 
-    def _select_single_feature(self, layer, feature) -> SelectionResult:
+    def _select_single_feature(self, layer: QgsVectorLayer, feature: QgsFeature) -> SelectionResult:
         mem_layer = self._create_memory_layer_from_feature(layer, feature)
 
         group = get_created_objects_group()
