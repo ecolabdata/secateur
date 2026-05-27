@@ -33,23 +33,23 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
 ## 📖 Sommaire
 
 1. [⚡ Quick Start](#-quick-start)
-2. [🎯 Présentation](#-présentation)
-3. [👥 Contexte et besoin métier](#contexte-et-besoin-métier)
-4. [✂️ Fonctionnalités](#-fonctionnalités)
+3. [🎯 Présentation](#-présentation)
+4. [👥 Contexte et besoin métier](#contexte-et-besoin-métier)
+5. [✂️ Fonctionnalités](#-fonctionnalités)
    - [✨ Fonctionnalités clefs](#-fonctionnalités-clefs)
    - [Intersection spatiale automatique](#intersection-spatiale-automatique)
    - [Gestion automatique des groupes QGIS](#gestion-automatique-des-groupes-qgis)
    - [Export CSV](#export-csv)
    - [Export GeoPDF](#export-geopdf)
    - [Compatibilité données](#compatibilité-données)
-5. [🌱 Prérequis](#prérequis)
+6. [🌱 Prérequis](#prérequis)
    - [Logiciels](#logiciels)
    - [Données](#données)
    - [Dépendances Python](#dépendances-python)
-6. [📦 Installation](#-installation)
+7. [📦 Installation](#-installation)
    - [Depuis le ZIP](#depuis-le-zip)
    - [Depuis les sources](#depuis-les-sources)
-7. [🚀 Utilisation détaillée](#-utilisation-détaillée)
+8. [🚀 Utilisation détaillée](#-utilisation-détaillée)
    - [1. Charger un projet QGIS](#1-charger-un-projet-qgis)
    - [2. Ouvrir le panneau Sécateur](#2-ouvrir-le-panneau-sécateur)
    - [3. Sélectionner une entité](#3-sélectionner-une-entité)
@@ -57,10 +57,10 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
    - [5. Exporter les résultats](#5-exporter-les-résultats)
    - [Workflow détaillé](#workflow-détaillé)
    - [Export PDF / GeoPDF](#export-pdf--geopdf)
-8. [🎨 Personnalisation des modèles QPT](#-personnalisation-des-modèles-qpt)
+9. [🎨 Personnalisation des modèles QPT](#-personnalisation-des-modèles-qpt)
    - [Modifier un modèle](#modifier-un-modèle)
    - [IDs obligatoires](#ids-obligatoires)
-9. [🏗️ Architecture technique](#️-architecture-technique)
+10. [🏗️ Architecture technique](#️-architecture-technique)
     - [Structure du projet](#structure-du-projet)
     - [Architecture logicielle](#architecture-logicielle)
     - [Couches principales](#couches-principales)
@@ -69,15 +69,15 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
     - [Logs](#logs)
     - [Diagramme de séquence](#diagramme-de-séquence)
     - [Diagramme](#diagramme)
-10. [🛠️ Développement](#️-développement)
+11. [🛠️ Développement](#️-développement)
     - [Rechargement rapide](#rechargement-rapide)
     - [Installation environnement](#installation-environnement)
     - [Qualité de code](#qualité-de-code)
     - [Packaging](#packaging)
-11. [🧯 Dépannage](#-dépannage)
-12. [Limitations connues](#limitations-connues)
-13. [🙏 Remerciements](#-remerciements)
-14. [🧭 Crédit](#-crédit)
+12. [🧯 Dépannage](#-dépannage)
+13. [Limitations connues](#limitations-connues)
+14. [🙏 Remerciements](#-remerciements)
+15. [🧭 Crédit](#-crédit)
 
 
 # 🎯Présentation
@@ -368,14 +368,8 @@ Sélectionner des entités
 
 Puis sélectionner une seule géométrie.
 
-⚠️ Le plugin nécessite exactement :
-
-```text
-1 entité sélectionnée
-```
-
-Sinon l’exécution sera refusée.
-
+> [!WARNING]
+> Le plugin nécessite exactement **1 entité sélectionnée** sinon l’exécution sera refusée.
 
 
 ## 4. Lancer l’intersection
@@ -521,7 +515,7 @@ resources/legend_layout.qpt
 
 # Modifier un modèle
 
-Dans QGIS :
+Dans QGIS (<a href="https://docs.qgis.org/3.34/fr/docs/training_manual/map_composer/map_composer.html" target="_blank">documentation</a>) :
 
 ```text
 Projet → Gestionnaire de mises en page
@@ -596,13 +590,43 @@ Le plugin suit une architecture :
 ## Couches principales
 
 |Module|Rôle|
-|||
+|---|---|
 |`plugin.py`|Point d’entrée QGIS|
 |`ui/panel.py`|Interface utilisateur|
 |`ui/service.py`|Logique métier|
 |`core/intersector.py`|Intersections spatiales|
 |`core/export/`|Exports CSV/PDF|
 |`core/utils/`|Helpers et utilitaires|
+
+
+### Diagramme
+```mermaid
+graph TD
+    A[UI Layer] --> B[Service Layer]
+    A --> C[UI Components]
+    B --> D[Core Logic]
+    B --> E[GIS Processing]
+    D --> F[Utils]
+    E --> G[QGIS Processing]
+    E --> H[Layer Management]
+    I[Export Layer] --> J[PDF Export]
+    I --> K[CSV Export]
+    J --> L[Layout Management]
+    J --> M[Legend Generation]
+    J --> N[PDF Export Engine]
+    K --> O[File I/O Utilities]
+    
+    classDef ui fill:#cde4ff,stroke:#64b5f6,stroke-width:2px;
+    classDef service fill:#f8f5e8,stroke:#d4af37,stroke-width:2px;
+    classDef core fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+    classDef infra fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef export fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
+
+    class A,B,C service
+    class D,E,F,G,H,D core
+    class I,J,K,L,M,N,O,P export
+    class A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P infra
+```
 
 
 
@@ -657,34 +681,6 @@ sequenceDiagram
 
 ```
 
-## Diagramme
-```mermaid
-graph TD
-    A[UI Layer] --> B[Service Layer]
-    A --> C[UI Components]
-    B --> D[Core Logic]
-    B --> E[GIS Processing]
-    D --> F[Utils]
-    E --> G[QGIS Processing]
-    E --> H[Layer Management]
-    I[Export Layer] --> J[PDF Export]
-    I --> K[CSV Export]
-    J --> L[Layout Management]
-    J --> M[Legend Generation]
-    J --> N[PDF Export Engine]
-    K --> O[File I/O Utilities]
-    
-    classDef ui fill:#cde4ff,stroke:#64b5f6,stroke-width:2px;
-    classDef service fill:#f8f5e8,stroke:#d4af37,stroke-width:2px;
-    classDef core fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
-    classDef infra fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
-    classDef export fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
-
-    class A,B,C service
-    class D,E,F,G,H,D core
-    class I,J,K,L,M,N,O,P export
-    class A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P infra
-```
 </details><br>
 
 <details>
