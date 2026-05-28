@@ -69,7 +69,7 @@ class _SecateurState:
 
 class SecateurPanel(QDockWidget):
     def __init__(self, iface: QgisInterfaceProtocol, parent: QWidget | None = None) -> None:
-        super().__init__("Ecosphères Secateur", parent or iface.mainWindow())
+        super().__init__("Sécateur", parent or iface.mainWindow())
         self.iface = iface
 
         self.settings = SettingsManager()
@@ -87,16 +87,16 @@ class SecateurPanel(QDockWidget):
         container = QWidget()
         layout = QVBoxLayout(container)
 
-        doc_label = QLabel()
-        doc_label.setText(
-            "1. Sélectionner l'objet à intersecter "
-            '(<a href="https://github.com/ecolabdata/ecospheres/issues/1034"'
-            'style="color: blue;">lien vers la documentation</a>).<br> \
-            2. intersecter les couches.'
+        first_label = QLabel()
+        first_label.setText(
+            '1. Sélectionner la géométrie de référence pour l\'intersection<br>\
+            <a href="https://docs.qgis.org/3.34/fr/docs/user_manual/introduction/general_tools.html#sec-selection"\
+            style="color: blue;">Documentaion QGIS</a><br><br>\
+            2. Intersecter les couches'
         )
-        doc_label.setOpenExternalLinks(True)
-        doc_label.setTextFormat(Qt.RichText)
-        layout.addWidget(doc_label)
+        first_label.setOpenExternalLinks(True)
+        first_label.setTextFormat(Qt.RichText)
+        layout.addWidget(first_label)
 
         btn_row = QHBoxLayout()
         self.run_button = QPushButton("Réaliser l'intersection")
@@ -104,11 +104,13 @@ class SecateurPanel(QDockWidget):
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
 
+        layout.addWidget(QLabel("3. Exporter les résultats"))
+
         geopdf_frame = QFrame()
         geopdf_frame.setFrameShape(QFrame.StyledPanel)
         geopdf_layout = QVBoxLayout(geopdf_frame)
 
-        geopdf_title_label = QLabel("Export PDF")
+        geopdf_title_label = QLabel("Export GeoPDF")
         geopdf_title_label.setStyleSheet("font-weight: bold;")
         geopdf_layout.addWidget(geopdf_title_label)
 
@@ -124,15 +126,15 @@ class SecateurPanel(QDockWidget):
             self.basemap_combo.setLayer(default_basemap)
             self._selected_basemap_id = default_basemap.id()
 
-        geopdf_layout.addWidget(QLabel("Modifier le titre :"))
+        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport GeoPDF :"))
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Titre du PDF")
+        self.title_input.setPlaceholderText("Titre du GeoPDF")
         self.title_input.setText(self.settings.pdf_title)
         geopdf_layout.addWidget(self.title_input)
 
         geopdf_row = QHBoxLayout()
 
-        self.export_pdf_button = QPushButton("Exporter le PDF")
+        self.export_pdf_button = QPushButton("Exporter le GeoPDF et sa légende")
         self.export_pdf_button.clicked.connect(self._on_export_pdf)
         geopdf_row.addWidget(self.export_pdf_button)
 
@@ -154,7 +156,7 @@ class SecateurPanel(QDockWidget):
         csv_title_label.setStyleSheet("font-weight: bold;")
         csv_layout.addWidget(csv_title_label)
 
-        csv_layout.addWidget(QLabel("Rapport tabulaire d’analyse de l’intersection :"))
+        csv_layout.addWidget(QLabel("Export tabulaire des entités intersectées pour chaque couche :"))
 
         self.export_csv_button = QPushButton("Exporter les CSV")
         self.export_csv_button.clicked.connect(self._on_export_csv)
@@ -162,6 +164,15 @@ class SecateurPanel(QDockWidget):
 
         layout.addWidget(csv_frame)
         csv_frame.setEnabled(False)
+
+        doc_label = QLabel()
+        doc_label.setText(
+            '<a href="https://github.com/ecolabdata/secateur" \
+            style="color: blue;">Documentation du plugin</a>'
+        )
+        doc_label.setOpenExternalLinks(True)
+        doc_label.setTextFormat(Qt.RichText)
+        layout.addWidget(doc_label)
 
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)

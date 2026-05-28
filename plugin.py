@@ -16,16 +16,16 @@ class Plugin:
     def initGui(self):
         icon_path = os.path.join(os.path.dirname(__file__), "resources", "icon.png")
         icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
-        self.action = QAction(icon, "Ecosphères Secateur", self.iface.mainWindow())
+        self.action = QAction(icon, "Sécateur", self.iface.mainWindow())
         self.action.setCheckable(True)
         self.action.triggered.connect(self._toggle_panel)
         self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("&Ecosphères Secateur", self.action)
+        self.iface.addPluginToMenu("&Sécateur", self.action)
 
     def unload(self):
         if self.action:
             self.iface.removeToolBarIcon(self.action)
-            self.iface.removePluginMenu("Ecosphères Secateur", self.action)
+            self.iface.removePluginMenu("Sécateur", self.action)
         if self.panel:
             self.iface.removeDockWidget(self.panel)
             self.panel.deleteLater()

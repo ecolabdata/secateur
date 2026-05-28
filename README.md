@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/img/banniere_secateur.png" alt="Ecosphères Sécateur Banner">
+  <img src="docs/img/banniere_secateur.png" alt="Sécateur Banner">
 </p>
 
 <p align="center">
@@ -82,7 +82,7 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
 
 # 🎯Présentation
 
-**Ecosphères Sécateur** est un plugin QGIS permettant d’automatiser des opérations d’intersection spatiale sur un grand nombre de couches géographiques.
+**Sécateur** est un plugin QGIS permettant d’automatiser des opérations d’intersection spatiale sur un grand nombre de couches géographiques.
 
 Le plugin a été conçu pour répondre à des besoins d’instruction territoriale et réglementaire :
 
@@ -268,15 +268,15 @@ Installer depuis un ZIP
 ### Linux
 
 ```bash
-ln -s /chemin/vers/ecospheres-secateur \
-~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/ecospheres-secateur
+ln -s /chemin/vers/secateur \
+~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/secateur
 ```
 
 ### macOS
 
 ```bash
-ln -s /chemin/vers/ecospheres-secateur \
-~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/ecospheres-secateur
+ln -s /chemin/vers/secateur \
+~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/secateur
 ```
 
 ### Windows
@@ -290,7 +290,7 @@ C:\Users\<user>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\
 Puis dans QGIS :
 
 ```text
-Extensions → Gérer/Installer les extensions → Ecosphères Sécateur → Activer
+Extensions → Gérer/Installer les extensions → Sécateur → Activer
 ```
 
 </details><br>
@@ -327,7 +327,7 @@ Le plugin fonctionne avec :
 Cliquer sur l’icône :
 
 ```text
-Ecosphères Sécateur
+Sécateur
 ```
 
 dans la barre d’outils QGIS.
@@ -564,7 +564,7 @@ Certains éléments doivent conserver leur ID.
 ## Structure du projet
 
 ```text
-ecospheres-secateur/
+secateur/
 ├── __init__.py
 ├── metadata.txt
 ├── plugin.py
@@ -729,7 +729,7 @@ uv run pyright
 ## Génération ZIP
 
 ```bash
-zip -r ecospheres-secateur.zip ecospheres-secateur -x "*/.*"
+zip -r secateur.zip secateur -x "*/.*"
 ```
 
 </details><br>

@@ -1,5 +1,5 @@
 [general]
-name=Ecosphères Secateur
+name=Sécateur
 qgisMinimumVersion=3.34
 description=Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale et la production de GeoPDF multicouches.
 version=0.1.0

@@ -1,4 +1,4 @@
-"""QGIS-native logging configuration for the ecosphères‑secateur package.
+"""QGIS-native logging configuration for the secateur package.
 
 This module configures a Python logger that forwards all messages to the
 QGIS message log panel via QgsMessageLog. It is designed for QGIS plugins

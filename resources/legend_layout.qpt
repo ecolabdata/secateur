@@ -651,7 +651,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem id="logo" position="267,160,mm" pictureHeight="20.1227" frame="false" uuid="{1b188661-b5ae-4d44-be78-f7719b51fc43}" positionOnPage="267,160,mm" positionLock="false" excludeFromExports="0" mode="1" templateUuid="{1b188661-b5ae-4d44-be78-f7719b51fc43}" background="false" resizeMode="0" anchorPoint="4" groupUuid="" visibility="1" svgFillColor="255,255,255,255" type="65640" opacity="1" itemRotation="0" northMode="0" outlineWidthM="0.3,mm" frameJoinStyle="miter" referencePoint="0" pictureWidth="20" svgBorderColor="0,0,0,255" mapUuid="" file="../../../../repos/ecospheres-secateur/resources/PREF_Cote_d_Or_CMJN_295_432px_Marianne.jpg" blendMode="0" svgBorderWidth="0.2" zValue="1" northOffset="0" size="20,40,mm" pictureRotation="0">
+ <LayoutItem id="logo" position="267,160,mm" pictureHeight="20.1227" frame="false" uuid="{1b188661-b5ae-4d44-be78-f7719b51fc43}" positionOnPage="267,160,mm" positionLock="false" excludeFromExports="0" mode="1" templateUuid="{1b188661-b5ae-4d44-be78-f7719b51fc43}" background="false" resizeMode="0" anchorPoint="4" groupUuid="" visibility="1" svgFillColor="255,255,255,255" type="65640" opacity="1" itemRotation="0" northMode="0" outlineWidthM="0.3,mm" frameJoinStyle="miter" referencePoint="0" pictureWidth="20" svgBorderColor="0,0,0,255" mapUuid="" file="../../../../repos/secateur/resources/PREF_Cote_d_Or_CMJN_295_432px_Marianne.jpg" blendMode="0" svgBorderWidth="0.2" zValue="1" northOffset="0" size="20,40,mm" pictureRotation="0">
   <FrameColor red="0" green="0" alpha="255" blue="0"/>
   <BackgroundColor red="255" green="255" alpha="255" blue="255"/>
   <LayoutObject>

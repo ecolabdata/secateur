@@ -21,7 +21,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ecospheres-secateur"
+name = "secateur"
 version = "0.1.0"
 source = { virtual = "." }
 
