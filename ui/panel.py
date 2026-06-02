@@ -91,7 +91,7 @@ class SecateurPanel(QDockWidget):
         first_label.setText(
             '1. Sélectionner la géométrie de référence pour l\'intersection<br>\
             <a href="https://docs.qgis.org/3.34/fr/docs/user_manual/introduction/general_tools.html#sec-selection"\
-            style="color: blue;">Documentaion QGIS</a><br><br>\
+            style="color: blue;">Documentation QGIS</a><br><br>\
             2. Intersecter les couches'
         )
         first_label.setOpenExternalLinks(True)
