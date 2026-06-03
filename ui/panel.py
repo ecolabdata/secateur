@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.export import export_results_to_csv, export_results_to_pdf
+from ..core.export import export_results_to_csv, export_results_to_multi_page_pdf, export_results_to_pdf
 from ..core.image_manager import ImageManager
 from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
@@ -389,7 +389,19 @@ class SecateurPanel(QDockWidget):
         feedback = self._create_feedback()
         try:
             with wait_cursor():
-                result = export_results_to_pdf(
+                # Export both GeoPDF and multi-page PDF
+                geopdf_path = export_results_to_pdf(
+                    self._resolve_result_layers(),
+                    folder,
+                    self.settings.logo_path,
+                    basemap_layer=self._resolve_basemap(),
+                    author=self.settings.author,
+                    title=title,
+                    feedback=feedback,
+                )
+
+                # Generate multi-page PDF with same parameters
+                multipdf_path = export_results_to_multi_page_pdf(
                     self._resolve_result_layers(),
                     folder,
                     self.settings.logo_path,
@@ -402,7 +414,7 @@ class SecateurPanel(QDockWidget):
                 self.settings.pdf_title = title
 
                 self._set_status(
-                    f"GeoPDF exporté : {result}",
+                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}",
                     "info",
                 )
 

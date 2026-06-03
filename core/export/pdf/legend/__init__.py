@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from qgis.core import QgsProject
 
 from .config import LegendExportConfig
@@ -6,9 +8,9 @@ from .service import LegendExportService
 
 def export_legend(
     *,
-    output_path: str,
+    output_path: Path,
     layer_names: list[str],
-    logo_path: str | None = None,
+    logo_path: Path | None = None,
     max_legend_items_per_page: int = 20,
     dpi: int = 300,
     title: str = "Légende",

@@ -16,7 +16,7 @@ def apply_label_text(item, text: str) -> None:
 
 def apply_logo(item, logo_path: Path | None) -> None:
     """Apply logo to a picture item."""
-    if item is not None and logo_path:
+    if item is not None and logo_path and logo_path.exists():
         item.setPicturePath(str(logo_path))
         item.refresh()
 

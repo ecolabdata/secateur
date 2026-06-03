@@ -20,6 +20,7 @@ def build_pdf_export_settings(
     settings.forceVectorOutput = options.force_vector_output
     settings.exportLayersAsVectors = options.export_layers_as_vectors
     settings.exportMetadata = options.export_metadata
+    settings.rasterizeWholeImage = options.rasterize_whole_image
     return settings
 
 
@@ -54,19 +55,14 @@ def export_layout_to_pdf(
     exporter = QgsLayoutExporter(layout)
     settings = build_pdf_export_settings(options)
 
-    # Centralized layout stabilization and Qt event processing
-    from .lifecycle.refresh import stabilize_layout
-
-    stabilize_layout(layout)
-
     if len(layout.items()) == 0:
         raise RuntimeError("Layout contains no items; template may have failed to load.")
 
     result = exporter.exportToPdf(str(output_path), settings)
     # Retry without GeoPDF flag if needed (code 4)
-    if result != QgsLayoutExporter.Success and result == 4:
+    if result != QgsLayoutExporter.Success and result == QgsLayoutExporter.MemoryError:
         settings.writeGeoPdf = False
-        result = exporter.exportToPdf(str(output_path), settings)
+    result = exporter.exportToPdf(str(output_path), settings)
 
     # Perform deterministic cleanup after export
     from .lifecycle.cleanup import finalize_export_cycle

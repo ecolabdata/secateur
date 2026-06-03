@@ -68,19 +68,15 @@ class GeoPdfExportService:
         """Create and configure the QGIS layout for the export, handling visibility of result layers."""
         update_feedback(feedback, 0, "Préparation de l'export PDF…")
         # Build layout without altering project layer visibility – the map item will use an explicit layer set
-        template_path_obj = Path(self.config.template_path)
-        if not template_path_obj.is_file():
-            logger.error(f"Layout template not found: {template_path_obj}")
-            raise RuntimeError(f"Layout template not found: {template_path_obj}")
 
         layout = build_report_layout(
             project=self.project,
-            template_path=str(self.config.template_path),
+            template_path=self.config.template_path,
             date_hm=display_date_str(),
             extent_rect=extent_rect,
             result_layers=result_layers,
             basemap_layer=basemap_layer,
-            logo_path=str(self.config.logo_path) if self.config.logo_path else None,
+            logo_path=self.config.logo_path,
             title=self.config.title,
             author=self.config.author,
         )
@@ -108,9 +104,9 @@ class GeoPdfExportService:
             root = self.project.layerTreeRoot()
             with temporary_visible_layers(root, result_layers, None, feedback) as layer_names:
                 export_legend(
-                    output_path=str(legend_output_path),
+                    output_path=legend_output_path,
                     layer_names=layer_names,
-                    logo_path=str(self.config.logo_path) if self.config.logo_path else None,
+                    logo_path=self.config.logo_path,
                     title=self.config.title,
                     author=self.config.author,
                 )
@@ -130,6 +126,7 @@ class GeoPdfExportService:
             force_vector_output=False,
             export_layers_as_vectors=True,
             export_metadata=True,
+            rasterize_whole_image=False,
         )
 
         output_path = Path(self.config.output_path)

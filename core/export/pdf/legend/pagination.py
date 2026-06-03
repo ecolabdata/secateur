@@ -123,19 +123,20 @@ class LegendPaginationService:
         if not layer_names:
             raise ValueError("No layers provided for export")
 
+        # Build lookup table once to avoid O(n*m) lookups
+        layers_by_name = {layer.name(): layer for layer in self.project.mapLayers().values()}
+
         pages: list[LegendPage] = []
 
         current_page: list[str] = []
         current_cost = 0
 
         for layer_name in layer_names:
-            layers = self.project.mapLayersByName(layer_name)
+            layer = layers_by_name.get(layer_name)
 
-            if not layers:
+            if not layer:
                 logger.warning(f"Layer '{layer_name}' not found in project")
                 continue
-
-            layer = layers[0]
 
             # Fallback cost for non-vector layers
             if not isinstance(layer, QgsVectorLayer):

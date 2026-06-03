@@ -25,6 +25,7 @@ def create_layout_from_template(
     if layout_name:
         layout.setName(layout_name)
 
+    # Validate template exists before attempting to load it
     if not template_path.exists():
         raise FileNotFoundError(f"Template file not found: {template_path}")
 
