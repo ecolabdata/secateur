@@ -80,6 +80,13 @@ def filter_out_source(layers: list[QgsVectorLayer], source: QgsVectorLayer) -> l
     return [lyr for lyr in layers if lyr != source]
 
 
+def find_tree_layer(
+    root: QgsLayerTreeGroup,
+    layer: QgsMapLayer,
+):
+    return root.findLayer(layer.id())
+
+
 def find_layers(exclude: QgsVectorLayer | None = None) -> list[QgsVectorLayer]:
     """Return a list of visible vector layers in the current QGIS project.
 

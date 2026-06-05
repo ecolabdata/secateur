@@ -14,7 +14,8 @@ from qgis.core import (
 from ..core.constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..core.intersector import add_results_to_project, intersect_layer
 from ..core.utils.layer_resolver import LayerResolver
-from ..core.utils.layers import find_layers, get_created_objects_group, get_results_group
+from ..core.utils.layers import find_layers, find_tree_layer, get_created_objects_group, get_results_group
+from ..core.utils.visibility import set_layer_visible
 
 # ──────────────────────────────────────────────
 #  Service result objects (explicit contracts)
@@ -86,7 +87,7 @@ class SecateurService:
         if results_group is None:
             return SelectionResult(None, None, f"Impossible d'accéder au groupe {RESULT_GROUP_NAME}.", "error")
 
-        if results_group.findLayer(layer.id()) is not None:
+        if find_tree_layer(results_group, layer) is not None:
             return SelectionResult(None, None, f"La sélection appartient au groupe {RESULT_GROUP_NAME}.", "warning")
 
         selected = layer.selectedFeatures()
@@ -100,7 +101,7 @@ class SecateurService:
         return SelectionResult(layer, None, f"Couche sélectionnée : {layer.name()}", "info")
 
     def _select_single_feature(self, layer: QgsVectorLayer, feature: QgsFeature) -> SelectionResult:
-        mem_layer = self._create_memory_layer_from_feature(layer, feature)
+        mem_layer = self._create_memory_layer_from_feature(layer, feature, hide_source=True)
 
         group = get_created_objects_group()
         if group is None:
@@ -162,7 +163,12 @@ class SecateurService:
     #  Memory layer
     # ──────────────────────────────────────────────
 
-    def _create_memory_layer_from_feature(self, source_layer: QgsVectorLayer, feature: QgsFeature) -> QgsVectorLayer:
+    def _create_memory_layer_from_feature(
+        self,
+        source_layer: QgsVectorLayer,
+        feature: QgsFeature,
+        hide_source: bool = False,
+    ) -> QgsVectorLayer:
         layer_name = f"{source_layer.name()}_feature_{feature.id()}"
         project = QgsProject.instance()
 
@@ -186,4 +192,8 @@ class SecateurService:
         mem_layer.updateExtents()
 
         project.addMapLayer(mem_layer, False)
+
+        if hide_source:
+            set_layer_visible(project.layerTreeRoot(), source_layer, False)
+
         return mem_layer
