@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from ....utils.formatting import timestamp_str
+from ..common.path_resolver import resolve_legend_output_path, resolve_resource_base_path
 
 
 @dataclass(slots=True)
@@ -33,15 +33,10 @@ class LegendExportConfig:
         Resolves the output path (adds timestamped filename if a directory is given),
         sets the template path to the bundled legend layout, and normalises the logo path.
         """
-        output_path_obj = Path(output_path).expanduser()
-        if output_path_obj.is_dir():
-            timestamp = timestamp_str()
-            output_path_obj = output_path_obj / f"Legende_{timestamp}.pdf"
-        else:
-            output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-        resource_base = Path(__file__).resolve().parents[4] / "resources"
-        template_path = resource_base / "legend_layout.qpt"
+        resource_base = resolve_resource_base_path(__file__)
+        output_path_obj, template_path = resolve_legend_output_path(
+            output_path, "Legende_{timestamp}.pdf", resource_base
+        )
 
         return cls(
             output_path=output_path_obj,

@@ -8,18 +8,30 @@ from contextlib import contextmanager
 
 from qgis.core import QgsLayerTreeGroup, QgsMapLayer
 
+from .layers import find_tree_layer
+
+
+def set_layer_visible(
+    root: QgsLayerTreeGroup,
+    layer: QgsMapLayer,
+    visible: bool,
+) -> bool:
+    if tree_layer := find_tree_layer(root, layer):
+        tree_layer.setItemVisibilityChecked(visible)
+        return True
+    return False
+
 
 def set_layer_and_parents_visible(root: QgsLayerTreeGroup, layer: QgsMapLayer) -> bool:
     """Make *layer* and all its parent groups visible.
 
     Returns ``True`` if the layer was found and visibility changed, ``False`` otherwise.
     """
-    tree_layer = root.findLayer(layer.id())
-    if not tree_layer:
-        return False
-    tree_layer.setItemVisibilityCheckedParentRecursive(True)
-    tree_layer.setItemVisibilityChecked(True)
-    return True
+    if tree_layer := find_tree_layer(root, layer):
+        tree_layer.setItemVisibilityCheckedParentRecursive(True)
+        tree_layer.setItemVisibilityChecked(True)
+        return True
+    return False
 
 
 @contextmanager

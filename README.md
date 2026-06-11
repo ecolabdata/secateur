@@ -729,7 +729,7 @@ uv run pyright
 ## Génération ZIP
 
 ```bash
-zip -r secateur.zip secateur -x "*/.*"
+zip -r secateur.zip secateur -x "*/.*" "*/docs/*"
 ```
 
 </details><br>

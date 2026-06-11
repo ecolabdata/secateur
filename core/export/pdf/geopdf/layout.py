@@ -18,8 +18,6 @@ from qgis.core import (
 
 from ....logger import logger
 from ..common.layout.metadata import apply_label_text, apply_logo
-from ..common.template_loader import create_layout_from_template as load_layout_from_template
-from .items import resolve_layout_items
 
 
 def populate_layout_texts(items, title: str, author: str, date_hm: str) -> None:
@@ -32,26 +30,24 @@ def populate_layout_texts(items, title: str, author: str, date_hm: str) -> None:
     apply_label_text(items.date_item, date_hm)
 
 
-def populate_layout_logo(items, logo_path: str | None) -> None:
+def populate_layout_logo(items, logo_path: Path | None) -> None:
     """Set the logo picture item if a valid path is provided.
 
     If ``logo_path`` is ``None`` or does not exist on the filesystem, the logo
     item remains unchanged.
     """
-    import os
-
-    if logo_path and os.path.exists(logo_path):
-        apply_logo(items.logo_item, Path(logo_path))
+    if logo_path and logo_path.exists():
+        apply_logo(items.logo_item, logo_path)
 
 
 def build_report_layout(
     project: QgsProject,
-    template_path: str,
+    template_path: Path,
     date_hm: str | None,
     extent_rect: QgsRectangle,
     result_layers: list[QgsMapLayer],
     basemap_layer: QgsMapLayer | None,
-    logo_path: str | None,
+    logo_path: Path | None,
     title: str,
     author: str,
 ) -> QgsPrintLayout:
@@ -60,36 +56,21 @@ def build_report_layout(
     The function loads the QPT template, configures the map extent, injects
     metadata texts and an optional logo.
     """
-    # Load template and obtain a fresh layout instance
-    layout_name = "GeoPDF"
-    layout = load_layout_from_template(
-        project=project,
-        template_path=Path(template_path),
-        layout_name=layout_name,
-        register_in_manager=False,
-    )
+    # Delegate to common builder
+    from ..common.layout.builder import build_layout_from_template
 
-    # Resolve layout items
-    items = resolve_layout_items(layout)
-    # Configure map geometry
-    configure_layout_map(
-        map_item=items.map_item,
+    return build_layout_from_template(
+        project=project,
+        template_path=template_path,
+        layout_name="GeoPDF",
+        title=title,
+        author=author,
+        date_text=date_hm,
+        logo_path=logo_path,
         extent_rect=extent_rect,
         result_layers=result_layers,
         basemap_layer=basemap_layer,
     )
-    from ..common.lifecycle.refresh import stabilize_layout
-
-    stabilize_layout(layout)
-
-    # Populate dynamic text fields
-    populate_layout_texts(items, title=title, author=author, date_hm=date_hm or "")
-    # Populate optional logo
-    populate_layout_logo(items, logo_path=logo_path)
-    from ..common.lifecycle.refresh import stabilize_layout
-
-    stabilize_layout(layout)
-    return layout
 
 
 def configure_layout_map(

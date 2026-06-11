@@ -20,11 +20,13 @@ def build_legend_tree(*, project: QgsProject, layer_names: list[str]) -> QgsLaye
     root = QgsLayerTree()
     root.setName("LegendRoot")
 
+    # Build lookup table once to avoid O(n*m) lookups
+    layers_by_name = {layer.name(): layer for layer in project.mapLayers().values()}
+
     for layer_name in layer_names:
-        layers = project.mapLayersByName(layer_name)
-        if not layers:
+        layer = layers_by_name.get(layer_name)
+        if not layer:
             continue
-        layer = layers[0]
         node = root.addLayer(layer)
         # Wrap long names for better layout rendering
         wrapped_name = "\n".join(textwrap.wrap(node.name(), width=100))

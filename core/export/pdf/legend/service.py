@@ -6,7 +6,6 @@ from qgis.core import QgsProject
 from ..common.models import PdfExportOptions
 from ..common.pdf_export import export_layout_to_pdf
 from .config import LegendExportConfig
-from .items import LegendLayoutItems  # noqa: F401 (imported for type hinting if needed)
 from .layout import build_legend_layout
 from .pagination import LegendItemCounter, LegendPaginationService
 
