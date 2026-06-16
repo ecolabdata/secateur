@@ -2,8 +2,7 @@ from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-from qgis.core import QgsMapLayer, QgsMapLayerProxyModel, QgsProcessingFeedback, QgsVectorLayer
-from qgis.gui import QgsMapLayerComboBox
+from qgis.core import QgsMapLayer, QgsProcessingFeedback, QgsVectorLayer
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -24,6 +23,7 @@ from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
 from .settings import SettingsDialog, SettingsManager
+from .widgets.basemap_combo import BasemapComboBox
 
 
 @runtime_checkable
@@ -77,7 +77,6 @@ class SecateurPanel(QDockWidget):
         self.state = _SecateurState()
         self.service = SecateurService()
 
-        self._selected_basemap_id: str | None = None
         self._feedback: QgsProcessingFeedback | None = None
 
         self._build_ui()
@@ -116,15 +115,8 @@ class SecateurPanel(QDockWidget):
 
         geopdf_layout.addWidget(QLabel("Choisir un fond de carte (facultatif) :"))
 
-        self.basemap_combo = QgsMapLayerComboBox()
-        self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
+        self.basemap_combo = BasemapComboBox()
         geopdf_layout.addWidget(self.basemap_combo)
-
-        raster_layers = self.service.get_available_raster_layers()
-        if raster_layers:
-            default_basemap = raster_layers[0]
-            self.basemap_combo.setLayer(default_basemap)
-            self._selected_basemap_id = default_basemap.id()
 
         geopdf_layout.addWidget(QLabel("Modifier le titre du rapport GeoPDF :"))
         self.title_input = QLineEdit()
@@ -184,8 +176,8 @@ class SecateurPanel(QDockWidget):
         self.csv_frame = csv_frame
         self.geopdf_frame = geopdf_frame
 
-        # At the end or block update signal
-        self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
+        self.basemap_combo.basemapGroupCreated.connect(self._on_basemap_group_created)
+        self.basemap_combo.currentIndexChanged.connect(self._on_basemap_selected)
         self._update_ui_state()
 
     def _update_ui_state(self) -> None:
@@ -216,10 +208,10 @@ class SecateurPanel(QDockWidget):
         return LayerResolver.get_many(self.state.result_layer_ids)
 
     def _resolve_basemap(self) -> QgsMapLayer | None:
-        if not self._selected_basemap_id:
+        layer_id = self.basemap_combo.selected_layer_id()
+        if not layer_id:
             return None
-
-        return LayerResolver.get(self._selected_basemap_id)
+        return LayerResolver.get(layer_id)
 
     def _open_settings_dialog(self) -> None:
         dlg = SettingsDialog(self.settings, self.image_manager, self)
@@ -253,14 +245,30 @@ class SecateurPanel(QDockWidget):
             # erreurs inattendues (IO, filesystem, etc.)
             self._set_status(f"Erreur inattendue : {e}", "error")
 
-    def _on_basemap_selected(self, layer: QgsMapLayer | None) -> None:
-        if layer is None:
-            self._selected_basemap_id = None
-            self._set_status("Fond de carte non sélectionné.", "warning")
+    def _on_basemap_group_created(self) -> None:
+        self._set_status(
+            (
+                'Le groupe "Fonds de carte" a été créé tout en bas.\n'
+                "Ajoutez-y les couches de contexte à utiliser "
+                "comme fonds de carte."
+            ),
+            "info",
+        )
+
+    def _on_basemap_selected(self, _: int) -> None:
+        layer_id = self.basemap_combo.selected_layer_id()
+
+        if layer_id is None:
+            self._set_status("Aucun fond de carte sélectionné.", "info")
             return
 
-        self._selected_basemap_id = layer.id()
-        self._set_status(f"Fond de carte sélectionné : {layer.name()}", "info")
+        layer = LayerResolver.get(layer_id)
+
+        if layer is not None:
+            self._set_status(
+                f"Fond de carte sélectionné : {layer.name()}",
+                "info",
+            )
 
     # ──────────────────────────────────────────────
     #  Execution
@@ -282,9 +290,7 @@ class SecateurPanel(QDockWidget):
 
         try:
             with wait_cursor():
-                result = self._run_process()
-                if result.level != "error" and self._selected_basemap_id is None:
-                    self._set_status("Fond de carte non sélectionné.", "warning")
+                self._run_process()
         except Exception as e:
             self._set_status(f"Erreur d'exécution : {e}", "error")
         finally:

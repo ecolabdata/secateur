@@ -12,7 +12,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
-from ..core.constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
+from ..core.constants import BASEMAP_GROUP_NAME, CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..core.intersection.intersection_context import (
     build_intersection_context,
     filter_layers_by_extent,
@@ -20,7 +20,7 @@ from ..core.intersection.intersection_context import (
 from ..core.intersection.intersection_metrics import IntersectionMetrics
 from ..core.intersection.intersector import add_results_to_project, intersect_layer
 from ..core.utils.layer_resolver import LayerResolver
-from ..core.utils.layers import find_layers, find_tree_layer, get_created_objects_group, get_results_group
+from ..core.utils.layers import find_group, find_layers, find_tree_layer, get_created_objects_group, get_results_group
 from ..core.utils.visibility import set_layer_visible
 
 # ──────────────────────────────────────────────
@@ -142,6 +142,11 @@ class SecateurService:
         context = build_intersection_context(selected_layer)
 
         layers = find_layers(exclude=selected_layer)
+
+        # Exclude layers from BASEMAP_GROUP_NAME
+        basemap_group = find_group([BASEMAP_GROUP_NAME])
+        if basemap_group is not None:
+            layers = [layer for layer in layers if find_tree_layer(basemap_group, layer) is None]
 
         layers = filter_layers_by_extent(
             context,
