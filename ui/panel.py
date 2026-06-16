@@ -486,5 +486,5 @@ class SecateurPanel(QDockWidget):
         self._feedback = None
 
     def _on_status_link_clicked(self, path: str) -> None:
-        """Open export folder. """
+        """Open export folder."""
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
