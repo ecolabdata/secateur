@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from qgis.core import QgsMapLayer, QgsProcessingFeedback, QgsVectorLayer
-from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtCore import Qt, QTimer, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -168,6 +169,9 @@ class SecateurPanel(QDockWidget):
 
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
+        self.status_label.setTextFormat(Qt.RichText)
+        self.status_label.setOpenExternalLinks(False)
+        self.status_label.linkActivated.connect(self._on_status_link_clicked)
         layout.addWidget(self.status_label)
 
         layout.addStretch()
@@ -420,7 +424,8 @@ class SecateurPanel(QDockWidget):
                 self.settings.pdf_title = title
 
                 self._set_status(
-                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}",
+                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}\n"
+                    f'<a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
 
@@ -479,3 +484,7 @@ class SecateurPanel(QDockWidget):
         self.export_csv_button.setEnabled(bool(self._resolve_result_layers()))
 
         self._feedback = None
+
+    def _on_status_link_clicked(self, path: str) -> None:
+        """Open export folder. """
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
