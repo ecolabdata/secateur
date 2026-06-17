@@ -30,7 +30,7 @@ class SettingsManager:
     """
 
     BASE_KEY = "secateur"
-    DEFAULT_LOGO = "PREF_Cote_d_Or_CMJN_295_432px_Marianne.jpg"
+    DEFAULT_LOGO = "logo.png"
 
     def __init__(self):
         self._settings = QgsSettings()
