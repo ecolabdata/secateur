@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.constants import BASEMAP_GROUP_NAME
 from ..core.export import export_results_to_csv, export_results_to_multi_page_pdf, export_results_to_pdf
 from ..core.image_manager import ImageManager
 from ..core.logger import logger
@@ -119,7 +120,7 @@ class SecateurPanel(QDockWidget):
         self.basemap_combo = BasemapComboBox()
         geopdf_layout.addWidget(self.basemap_combo)
 
-        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport GeoPDF :"))
+        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport :"))
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("Titre du GeoPDF")
         self.title_input.setText(self.settings.pdf_title)
@@ -252,11 +253,10 @@ class SecateurPanel(QDockWidget):
     def _on_basemap_group_created(self) -> None:
         self._set_status(
             (
-                'Le groupe "Fonds de carte" a été créé tout en bas.\n'
-                "Ajoutez-y les couches de contexte à utiliser "
-                "comme fonds de carte."
+                f'Le groupe "{BASEMAP_GROUP_NAME}" a été créé tout en bas.\n'
+                "Ajoutez-y les couches à utiliser comme fonds de carte."
             ),
-            "info",
+            "warning",
         )
 
     def _on_basemap_selected(self, _: int) -> None:

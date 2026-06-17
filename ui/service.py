@@ -4,10 +4,12 @@ from typing import Literal, Protocol, runtime_checkable
 import processing  # type: ignore
 from qgis.core import (
     QgsFeature,
+    QgsFillSymbol,
     QgsMapLayer,
     QgsProcessingFeedback,
     QgsProject,
     QgsRasterLayer,
+    QgsSingleSymbolRenderer,
     QgsVectorLayer,
     QgsWkbTypes,
 )
@@ -217,6 +219,18 @@ class SecateurService:
                 "INPUT": mem_layer,
             },
         )
+
+        symbol = QgsFillSymbol.createSimple(
+            {
+                "color": "0,0,0,0",  # RDGBA=0 for transparency
+                "outline_color": "255,0,0",  # red
+                "outline_width": "0.6",
+            }
+        )
+        # 65% opacity
+        symbol.setOpacity(0.35)
+        mem_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+        mem_layer.triggerRepaint()
 
         project.addMapLayer(mem_layer, False)
 
