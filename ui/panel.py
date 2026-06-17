@@ -253,8 +253,8 @@ class SecateurPanel(QDockWidget):
     def _on_basemap_group_created(self) -> None:
         self._set_status(
             (
-                f'Le groupe "{BASEMAP_GROUP_NAME}" a été créé tout en bas.\n'
-                "Ajoutez-y les couches à utiliser comme fonds de carte."
+                f"Le groupe {BASEMAP_GROUP_NAME} a été créé en bas de l'arborescence des couches. "
+                "Veuillez y ajouter les couches à utiliser comme fond de carte."
             ),
             "warning",
         )
