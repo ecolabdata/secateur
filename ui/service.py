@@ -19,8 +19,9 @@ from ..core.intersection.intersection_context import (
     build_intersection_context,
     filter_layers_by_extent,
 )
-from ..core.intersection.intersection_metrics import IntersectionMetrics
-from ..core.intersection.intersector import add_results_to_project, intersect_layer
+from ..core.intersection.intersection_metrics import _format_metrics_summary
+from ..core.intersection.intersection_processing import intersect_layers, prepare_layers
+from ..core.intersection.intersection_results import add_results_to_project
 from ..core.utils.layer_resolver import LayerResolver
 from ..core.utils.layers import find_group, find_layers, find_tree_layer, get_created_objects_group, get_results_group
 from ..core.utils.visibility import set_layer_visible
@@ -157,7 +158,8 @@ class SecateurService:
         if not layers:
             return ProcessResult([], "Aucune couche visible à comparer.", "error")
 
-        results = intersect_layer(selected_layer, layers, context=context, feedback=feedback)
+        prepared_layers = prepare_layers(layers, context, feedback)
+        results = intersect_layers(selected_layer, prepared_layers, context=context, feedback=feedback)
 
         if results:
             add_results_to_project(results)
@@ -169,7 +171,7 @@ class SecateurService:
 
             # Display metrics summary if available
             if context.metrics.layers:
-                metrics_msg = self._format_metrics_summary(context.metrics)
+                metrics_msg = _format_metrics_summary(context.metrics)
                 feedback.pushInfo(metrics_msg)
 
             return ProcessResult(result_ids, f"{layer_count} couches trouvées.", "info")
@@ -238,42 +240,3 @@ class SecateurService:
             set_layer_visible(project.layerTreeRoot(), source_layer, False)
 
         return mem_layer
-
-    def _format_metrics_summary(self, metrics: IntersectionMetrics) -> str:
-        """Format a summary of performance metrics."""
-        if not metrics.layers:
-            return ""
-
-        # Format per-layer metrics
-        layer_lines = []
-        total_bbox = 0.0
-        total_reproj = 0.0
-        total_extract = 0.0
-
-        for layer_name, layer_metrics in metrics.layers.items():
-            total_bbox += layer_metrics.bbox_seconds
-            total_reproj += layer_metrics.reproj_seconds
-            total_extract += layer_metrics.extract_seconds
-
-            layer_lines.append(
-                f"  {layer_name}: "
-                f"bbox={layer_metrics.bbox_seconds:.2f}s, "
-                f"reproj={layer_metrics.reproj_seconds:.2f}s, "
-                f"extract={layer_metrics.extract_seconds:.2f}s"
-            )
-
-        # Format totals
-        total_time = total_bbox + total_reproj + total_extract
-        summary_lines = [
-            f"Performance totale: {total_time:.2f}s",
-            f"  bbox: {total_bbox:.2f}s",
-            f"  reproj: {total_reproj:.2f}s",
-            f"  extract: {total_extract:.2f}s",
-        ]
-
-        if layer_lines:
-            summary_lines.append("")
-            summary_lines.append("Détails par couche:")
-            summary_lines.extend(layer_lines)
-
-        return "\n".join(summary_lines)

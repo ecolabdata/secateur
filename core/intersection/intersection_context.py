@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from qgis.core import (
+    # existing imports
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,
@@ -13,7 +14,7 @@ from .intersection_metrics import IntersectionMetrics
 
 
 @dataclass(slots=True)
-class IntersectionContext:
+class IntersectionExecutionContext:
     """
     Données calculées une seule fois pour toute l'analyse.
     """
@@ -21,15 +22,16 @@ class IntersectionContext:
     source_crs: QgsCoordinateReferenceSystem
     source_extent: QgsRectangle
 
+    # Holds performance metrics for the intersection process
+    metrics: IntersectionMetrics = field(default_factory=IntersectionMetrics)
+
     transform_cache: "TransformCache" = field(default_factory=lambda: TransformCache())
 
     extent_cache: dict[str, QgsRectangle] = field(default_factory=dict)
 
-    metrics: IntersectionMetrics = field(default_factory=IntersectionMetrics)
-
 
 def get_source_extent_in_crs(
-    context: IntersectionContext,
+    context: IntersectionExecutionContext,
     target_crs: QgsCoordinateReferenceSystem,
 ) -> QgsRectangle:
     if target_crs == context.source_crs:
@@ -56,13 +58,13 @@ def get_source_extent_in_crs(
 
 def build_intersection_context(
     source_layer: QgsVectorLayer,
-) -> IntersectionContext:
+) -> IntersectionExecutionContext:
     """
     Construit toutes les informations réutilisables liées
     à la couche source.
     """
 
-    return IntersectionContext(
+    return IntersectionExecutionContext(
         source_crs=source_layer.crs(),
         source_extent=source_layer.extent(),
     )
@@ -100,7 +102,7 @@ class TransformCache:
 
 
 def may_intersect_source(
-    context: IntersectionContext,
+    context: IntersectionExecutionContext,
     layer: QgsVectorLayer | QgsRasterLayer,
 ) -> bool:
     """
@@ -123,7 +125,7 @@ def may_intersect_source(
 
 
 def filter_layers_by_extent(
-    context: IntersectionContext,
+    context: IntersectionExecutionContext,
     layers: list[QgsVectorLayer | QgsRasterLayer],
 ) -> list[QgsVectorLayer | QgsRasterLayer]:
     return [layer for layer in layers if may_intersect_source(context, layer)]
