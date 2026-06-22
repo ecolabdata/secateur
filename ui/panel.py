@@ -359,7 +359,7 @@ class SecateurPanel(QDockWidget):
                 )
 
                 self._set_status(
-                    f"{len(result)} CSV exporté(s).",
+                    f'{len(result)} CSV exporté(s).<br><a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
 
@@ -424,7 +424,7 @@ class SecateurPanel(QDockWidget):
                 self.settings.pdf_title = title
 
                 self._set_status(
-                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}\n"
+                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}<br>"
                     f'<a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
