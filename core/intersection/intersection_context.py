@@ -22,6 +22,8 @@ class IntersectionExecutionContext:
     source_crs: QgsCoordinateReferenceSystem
     source_extent: QgsRectangle
 
+    include_raster: bool = False
+
     # Holds performance metrics for the intersection process
     metrics: IntersectionMetrics = field(default_factory=IntersectionMetrics)
 
@@ -58,6 +60,8 @@ def get_source_extent_in_crs(
 
 def build_intersection_context(
     source_layer: QgsVectorLayer,
+    *,
+    include_raster: bool = False,
 ) -> IntersectionExecutionContext:
     """
     Construit toutes les informations réutilisables liées
@@ -67,6 +71,7 @@ def build_intersection_context(
     return IntersectionExecutionContext(
         source_crs=source_layer.crs(),
         source_extent=source_layer.extent(),
+        include_raster=include_raster,
     )
 
 

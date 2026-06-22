@@ -7,6 +7,7 @@ from qgis.PyQt.QtCore import Qt, QTimer, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDockWidget,
     QFileDialog,
     QFrame,
@@ -104,6 +105,13 @@ class SecateurPanel(QDockWidget):
         self.run_button.clicked.connect(self._execute)
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
+
+        options_row = QHBoxLayout()
+        self.raster_checkbox = QCheckBox("Inclure les couches rasters à l'intersection")
+        self.raster_checkbox.setChecked(self.settings.include_raster)
+        self.raster_checkbox.stateChanged.connect(self._on_include_raster_changed)
+        options_row.addWidget(self.raster_checkbox)
+        layout.addLayout(options_row)
 
         layout.addWidget(QLabel("3. Exporter les résultats"))
 
@@ -217,6 +225,9 @@ class SecateurPanel(QDockWidget):
         if not layer_id:
             return None
         return LayerResolver.get(layer_id)
+
+    def _on_include_raster_changed(self, state: int) -> None:
+        self.settings.include_raster = state == Qt.Checked
 
     def _open_settings_dialog(self) -> None:
         dlg = SettingsDialog(self.settings, self.image_manager, self)

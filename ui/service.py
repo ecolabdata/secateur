@@ -25,6 +25,7 @@ from ..core.intersection.intersection_results import add_results_to_project
 from ..core.utils.layer_resolver import LayerResolver
 from ..core.utils.layers import find_group, find_layers, find_tree_layer, get_created_objects_group, get_results_group
 from ..core.utils.visibility import set_layer_visible
+from .settings import SettingsManager
 
 # ──────────────────────────────────────────────
 #  Service result objects (explicit contracts)
@@ -74,6 +75,9 @@ class SecateurService:
     Ne contient AUCUNE dépendance UI (Qt).
     Conserve tous les effets de bord QGIS existants.
     """
+
+    def __init__(self) -> None:
+        self.settings = SettingsManager()
 
     def get_available_raster_layers(self) -> list[QgsRasterLayer]:
         """Get all raster layers available in the current project."""
@@ -138,13 +142,15 @@ class SecateurService:
                 "error",
             )
 
+        include_raster = self.settings.include_raster
+
         group = get_results_group(clear=True)
         if group is None:
             return ProcessResult([], "Impossible d'accéder au groupe 'Résultats secateur'.", "error")
 
-        context = build_intersection_context(selected_layer)
+        context = build_intersection_context(selected_layer, include_raster=include_raster)
 
-        layers = find_layers(exclude=selected_layer)
+        layers = find_layers(exclude=selected_layer, include_raster=include_raster)
 
         # Exclude layers from BASEMAP_GROUP_NAME
         basemap_group = find_group([BASEMAP_GROUP_NAME])
