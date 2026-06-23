@@ -11,7 +11,6 @@ from qgis.core import (
     QgsMapLayer,
     QgsProcessingFeedback,
     QgsProject,
-    QgsRasterLayer,
     QgsVectorLayer,
 )
 
@@ -115,19 +114,19 @@ def find_tree_layer(
 def iter_visible_layers(
     group: QgsLayerTreeGroup,
     exclude: QgsMapLayer | None = None,
-    include_raster: bool = False,
+    allowed_types: tuple[type[QgsMapLayer], ...] = (QgsVectorLayer,),
 ) -> Iterator[QgsMapLayer]:
     for child in group.children():
         if isinstance(child, QgsLayerTreeGroup):
             if child.isVisible():
-                yield from iter_visible_layers(child, exclude, include_raster=include_raster)
+                yield from iter_visible_layers(child, exclude, allowed_types)
 
         elif isinstance(child, QgsLayerTreeLayer):
             if not child.isVisible():
                 continue
 
             layer = child.layer()
-            if not include_raster and isinstance(layer, QgsRasterLayer):
+            if not isinstance(layer, allowed_types):
                 continue
             if layer != exclude:
                 yield layer
@@ -138,7 +137,9 @@ def _root() -> QgsLayerTreeGroup | None:
     return project.layerTreeRoot() if project else None
 
 
-def find_layers(exclude: QgsMapLayer | None = None, include_raster: bool = False) -> list[QgsMapLayer]:
+def find_layers(
+    exclude: QgsMapLayer | None = None, allowed_types: tuple[type[QgsMapLayer], ...] = (QgsVectorLayer,)
+) -> list[QgsMapLayer]:
     """Return a list of visible vector layers in the current QGIS project.
 
     Args:
@@ -152,7 +153,7 @@ def find_layers(exclude: QgsMapLayer | None = None, include_raster: bool = False
         iter_visible_layers(
             root,
             exclude,
-            include_raster=include_raster,
+            allowed_types,
         )
     )
 

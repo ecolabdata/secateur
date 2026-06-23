@@ -150,7 +150,8 @@ class SecateurService:
 
         context = build_intersection_context(selected_layer, include_raster=include_raster)
 
-        layers = find_layers(exclude=selected_layer, include_raster=include_raster)
+        allowed_types = (QgsVectorLayer, QgsRasterLayer) if self.settings.include_raster else (QgsVectorLayer,)
+        layers = find_layers(exclude=selected_layer, allowed_types=allowed_types)
 
         # Exclude layers from BASEMAP_GROUP_NAME
         basemap_group = find_group([BASEMAP_GROUP_NAME])

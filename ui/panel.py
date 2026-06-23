@@ -107,7 +107,7 @@ class SecateurPanel(QDockWidget):
         layout.addLayout(btn_row)
 
         options_row = QHBoxLayout()
-        self.raster_checkbox = QCheckBox("Inclure les couches rasters à l'intersection")
+        self.raster_checkbox = QCheckBox("Inclure les couches rasters")
         self.raster_checkbox.setChecked(self.settings.include_raster)
         self.raster_checkbox.stateChanged.connect(self._on_include_raster_changed)
         options_row.addWidget(self.raster_checkbox)
