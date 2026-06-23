@@ -64,7 +64,7 @@ class MultiPagePdfExportService:
             # Overview page
             # -----------------------------------------------------------------
             update_feedback(feedback, 0, "Création de la page d'ensemble")
-            overview_layers = list(result_layers)
+            overview_layers: list[QgsMapLayer] = [src_layer]
             if basemap_layer:
                 overview_layers.append(basemap_layer)
             overview_layout = self._create_page_layout(
