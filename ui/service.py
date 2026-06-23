@@ -4,24 +4,28 @@ from typing import Literal, Protocol, runtime_checkable
 import processing  # type: ignore
 from qgis.core import (
     QgsFeature,
+    QgsFillSymbol,
     QgsMapLayer,
     QgsProcessingFeedback,
     QgsProject,
     QgsRasterLayer,
+    QgsSingleSymbolRenderer,
     QgsVectorLayer,
     QgsWkbTypes,
 )
 
-from ..core.constants import CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
+from ..core.constants import BASEMAP_GROUP_NAME, CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..core.intersection.intersection_context import (
     build_intersection_context,
     filter_layers_by_extent,
 )
-from ..core.intersection.intersection_metrics import IntersectionMetrics
-from ..core.intersection.intersector import add_results_to_project, intersect_layer
+from ..core.intersection.intersection_metrics import _format_metrics_summary
+from ..core.intersection.intersection_processing import intersect_layers, prepare_layers
+from ..core.intersection.intersection_results import add_results_to_project
 from ..core.utils.layer_resolver import LayerResolver
-from ..core.utils.layers import find_layers, find_tree_layer, get_created_objects_group, get_results_group
+from ..core.utils.layers import find_group, find_layers, find_tree_layer, get_created_objects_group, get_results_group
 from ..core.utils.visibility import set_layer_visible
+from .settings import SettingsManager
 
 # ──────────────────────────────────────────────
 #  Service result objects (explicit contracts)
@@ -71,6 +75,9 @@ class SecateurService:
     Ne contient AUCUNE dépendance UI (Qt).
     Conserve tous les effets de bord QGIS existants.
     """
+
+    def __init__(self) -> None:
+        self.settings = SettingsManager()
 
     def get_available_raster_layers(self) -> list[QgsRasterLayer]:
         """Get all raster layers available in the current project."""
@@ -135,13 +142,21 @@ class SecateurService:
                 "error",
             )
 
+        include_raster = self.settings.include_raster
+
         group = get_results_group(clear=True)
         if group is None:
             return ProcessResult([], "Impossible d'accéder au groupe 'Résultats secateur'.", "error")
 
-        context = build_intersection_context(selected_layer)
+        context = build_intersection_context(selected_layer, include_raster=include_raster)
 
-        layers = find_layers(exclude=selected_layer)
+        allowed_types = (QgsVectorLayer, QgsRasterLayer) if self.settings.include_raster else (QgsVectorLayer,)
+        layers = find_layers(exclude=selected_layer, allowed_types=allowed_types)
+
+        # Exclude layers from BASEMAP_GROUP_NAME
+        basemap_group = find_group([BASEMAP_GROUP_NAME])
+        if basemap_group is not None:
+            layers = [layer for layer in layers if find_tree_layer(basemap_group, layer) is None]
 
         layers = filter_layers_by_extent(
             context,
@@ -150,7 +165,8 @@ class SecateurService:
         if not layers:
             return ProcessResult([], "Aucune couche visible à comparer.", "error")
 
-        results = intersect_layer(selected_layer, layers, context=context, feedback=feedback)
+        prepared_layers = prepare_layers(layers, context, feedback)
+        results = intersect_layers(selected_layer, prepared_layers, context=context, feedback=feedback)
 
         if results:
             add_results_to_project(results)
@@ -162,7 +178,7 @@ class SecateurService:
 
             # Display metrics summary if available
             if context.metrics.layers:
-                metrics_msg = self._format_metrics_summary(context.metrics)
+                metrics_msg = _format_metrics_summary(context.metrics)
                 feedback.pushInfo(metrics_msg)
 
             return ProcessResult(result_ids, f"{layer_count} couches trouvées.", "info")
@@ -213,48 +229,21 @@ class SecateurService:
             },
         )
 
+        symbol = QgsFillSymbol.createSimple(
+            {
+                "color": "0,0,0,0",  # RDGBA=0 for transparency
+                "outline_color": "255,0,0",  # red
+                "outline_width": "0.6",
+            }
+        )
+        # 65% opacity
+        symbol.setOpacity(0.35)
+        mem_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+        mem_layer.triggerRepaint()
+
         project.addMapLayer(mem_layer, False)
 
         if hide_source:
             set_layer_visible(project.layerTreeRoot(), source_layer, False)
 
         return mem_layer
-
-    def _format_metrics_summary(self, metrics: IntersectionMetrics) -> str:
-        """Format a summary of performance metrics."""
-        if not metrics.layers:
-            return ""
-
-        # Format per-layer metrics
-        layer_lines = []
-        total_bbox = 0.0
-        total_reproj = 0.0
-        total_extract = 0.0
-
-        for layer_name, layer_metrics in metrics.layers.items():
-            total_bbox += layer_metrics.bbox_seconds
-            total_reproj += layer_metrics.reproj_seconds
-            total_extract += layer_metrics.extract_seconds
-
-            layer_lines.append(
-                f"  {layer_name}: "
-                f"bbox={layer_metrics.bbox_seconds:.2f}s, "
-                f"reproj={layer_metrics.reproj_seconds:.2f}s, "
-                f"extract={layer_metrics.extract_seconds:.2f}s"
-            )
-
-        # Format totals
-        total_time = total_bbox + total_reproj + total_extract
-        summary_lines = [
-            f"Performance totale: {total_time:.2f}s",
-            f"  bbox: {total_bbox:.2f}s",
-            f"  reproj: {total_reproj:.2f}s",
-            f"  extract: {total_extract:.2f}s",
-        ]
-
-        if layer_lines:
-            summary_lines.append("")
-            summary_lines.append("Détails par couche:")
-            summary_lines.extend(layer_lines)
-
-        return "\n".join(summary_lines)

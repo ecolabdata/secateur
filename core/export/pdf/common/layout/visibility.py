@@ -19,7 +19,7 @@ def _apply_export_layer_style(root, layer) -> int:
     """
     try:
         if is_simple_fill(layer):
-            set_layer_opacity(layer, opacity=0.8)
+            set_layer_opacity(layer, opacity=0.65)
         return int(set_layer_and_parents_visible(root, layer))
     except Exception as exc:
         logger.exception("Could not set visibility for layer %s: %s", layer.name(), exc)

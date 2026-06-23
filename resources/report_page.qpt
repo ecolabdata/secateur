@@ -614,7 +614,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem excludeFromExports="0" northMode="0" background="true" visibility="1" zValue="2" northOffset="0" templateUuid="{683be8b7-d658-4535-bf03-c0266b33c62f}" positionOnPage="267,160,mm" pictureHeight="20.1227" positionLock="false" referencePoint="0" outlineWidthM="0.3,mm" type="65640" mapUuid="" frame="false" resizeMode="0" svgBorderColor="0,0,0,255" mode="1" position="267,160,mm" size="20,40,mm" blendMode="0" svgBorderWidth="0.2" frameJoinStyle="miter" opacity="1" itemRotation="0" svgFillColor="255,255,255,255" pictureRotation="0" groupUuid="" id="logo" uuid="{683be8b7-d658-4535-bf03-c0266b33c62f}" anchorPoint="4" pictureWidth="20" file="../../../../repos/secateur/resources/PREF_Cote_d_Or_CMJN_295_432px_Marianne.jpg">
+ <LayoutItem excludeFromExports="0" northMode="0" background="true" visibility="1" zValue="2" northOffset="0" templateUuid="{683be8b7-d658-4535-bf03-c0266b33c62f}" positionOnPage="267,160,mm" pictureHeight="20.1227" positionLock="false" referencePoint="0" outlineWidthM="0.3,mm" type="65640" mapUuid="" frame="false" resizeMode="0" svgBorderColor="0,0,0,255" mode="1" position="267,160,mm" size="20,40,mm" blendMode="0" svgBorderWidth="0.2" frameJoinStyle="miter" opacity="1" itemRotation="0" svgFillColor="255,255,255,255" pictureRotation="0" groupUuid="" id="logo" uuid="{683be8b7-d658-4535-bf03-c0266b33c62f}" anchorPoint="4" pictureWidth="20" file="../../../../repos/secateur/resources/logo.png">
   <FrameColor alpha="255" blue="0" green="0" red="0"/>
   <BackgroundColor alpha="255" blue="255" green="255" red="255"/>
   <LayoutObject>

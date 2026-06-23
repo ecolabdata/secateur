@@ -2,11 +2,12 @@ from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-from qgis.core import QgsMapLayer, QgsMapLayerProxyModel, QgsProcessingFeedback, QgsVectorLayer
-from qgis.gui import QgsMapLayerComboBox
-from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.core import QgsMapLayer, QgsProcessingFeedback, QgsVectorLayer
+from qgis.PyQt.QtCore import Qt, QTimer, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDockWidget,
     QFileDialog,
     QFrame,
@@ -18,12 +19,14 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.constants import BASEMAP_GROUP_NAME
 from ..core.export import export_results_to_csv, export_results_to_multi_page_pdf, export_results_to_pdf
 from ..core.image_manager import ImageManager
 from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
 from .settings import SettingsDialog, SettingsManager
+from .widgets.basemap_combo import BasemapComboBox
 
 
 @runtime_checkable
@@ -77,7 +80,6 @@ class SecateurPanel(QDockWidget):
         self.state = _SecateurState()
         self.service = SecateurService()
 
-        self._selected_basemap_id: str | None = None
         self._feedback: QgsProcessingFeedback | None = None
 
         self._build_ui()
@@ -104,6 +106,13 @@ class SecateurPanel(QDockWidget):
         btn_row.addWidget(self.run_button)
         layout.addLayout(btn_row)
 
+        options_row = QHBoxLayout()
+        self.raster_checkbox = QCheckBox("Inclure les couches rasters")
+        self.raster_checkbox.setChecked(self.settings.include_raster)
+        self.raster_checkbox.stateChanged.connect(self._on_include_raster_changed)
+        options_row.addWidget(self.raster_checkbox)
+        layout.addLayout(options_row)
+
         layout.addWidget(QLabel("3. Exporter les résultats"))
 
         geopdf_frame = QFrame()
@@ -116,17 +125,10 @@ class SecateurPanel(QDockWidget):
 
         geopdf_layout.addWidget(QLabel("Choisir un fond de carte (facultatif) :"))
 
-        self.basemap_combo = QgsMapLayerComboBox()
-        self.basemap_combo.setFilters(QgsMapLayerProxyModel.RasterLayer)  # type: ignore
+        self.basemap_combo = BasemapComboBox()
         geopdf_layout.addWidget(self.basemap_combo)
 
-        raster_layers = self.service.get_available_raster_layers()
-        if raster_layers:
-            default_basemap = raster_layers[0]
-            self.basemap_combo.setLayer(default_basemap)
-            self._selected_basemap_id = default_basemap.id()
-
-        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport GeoPDF :"))
+        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport :"))
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("Titre du GeoPDF")
         self.title_input.setText(self.settings.pdf_title)
@@ -176,6 +178,9 @@ class SecateurPanel(QDockWidget):
 
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
+        self.status_label.setTextFormat(Qt.RichText)
+        self.status_label.setOpenExternalLinks(False)
+        self.status_label.linkActivated.connect(self._on_status_link_clicked)
         layout.addWidget(self.status_label)
 
         layout.addStretch()
@@ -184,8 +189,8 @@ class SecateurPanel(QDockWidget):
         self.csv_frame = csv_frame
         self.geopdf_frame = geopdf_frame
 
-        # At the end or block update signal
-        self.basemap_combo.layerChanged.connect(self._on_basemap_selected)  # type: ignore
+        self.basemap_combo.basemapGroupCreated.connect(self._on_basemap_group_created)
+        self.basemap_combo.currentIndexChanged.connect(self._on_basemap_selected)
         self._update_ui_state()
 
     def _update_ui_state(self) -> None:
@@ -216,10 +221,13 @@ class SecateurPanel(QDockWidget):
         return LayerResolver.get_many(self.state.result_layer_ids)
 
     def _resolve_basemap(self) -> QgsMapLayer | None:
-        if not self._selected_basemap_id:
+        layer_id = self.basemap_combo.selected_layer_id()
+        if not layer_id:
             return None
+        return LayerResolver.get(layer_id)
 
-        return LayerResolver.get(self._selected_basemap_id)
+    def _on_include_raster_changed(self, state: int) -> None:
+        self.settings.include_raster = state == Qt.Checked
 
     def _open_settings_dialog(self) -> None:
         dlg = SettingsDialog(self.settings, self.image_manager, self)
@@ -253,14 +261,29 @@ class SecateurPanel(QDockWidget):
             # erreurs inattendues (IO, filesystem, etc.)
             self._set_status(f"Erreur inattendue : {e}", "error")
 
-    def _on_basemap_selected(self, layer: QgsMapLayer | None) -> None:
-        if layer is None:
-            self._selected_basemap_id = None
-            self._set_status("Fond de carte non sélectionné.", "warning")
+    def _on_basemap_group_created(self) -> None:
+        self._set_status(
+            (
+                f"Le groupe {BASEMAP_GROUP_NAME} a été créé en bas de l'arborescence des couches. "
+                "Veuillez y ajouter les couches à utiliser comme fond de carte."
+            ),
+            "warning",
+        )
+
+    def _on_basemap_selected(self, _: int) -> None:
+        layer_id = self.basemap_combo.selected_layer_id()
+
+        if layer_id is None:
+            self._set_status("Aucun fond de carte sélectionné.", "info")
             return
 
-        self._selected_basemap_id = layer.id()
-        self._set_status(f"Fond de carte sélectionné : {layer.name()}", "info")
+        layer = LayerResolver.get(layer_id)
+
+        if layer is not None:
+            self._set_status(
+                f"Fond de carte sélectionné : {layer.name()}",
+                "info",
+            )
 
     # ──────────────────────────────────────────────
     #  Execution
@@ -282,9 +305,7 @@ class SecateurPanel(QDockWidget):
 
         try:
             with wait_cursor():
-                result = self._run_process()
-                if result.level != "error" and self._selected_basemap_id is None:
-                    self._set_status("Fond de carte non sélectionné.", "warning")
+                self._run_process()
         except Exception as e:
             self._set_status(f"Erreur d'exécution : {e}", "error")
         finally:
@@ -349,7 +370,7 @@ class SecateurPanel(QDockWidget):
                 )
 
                 self._set_status(
-                    f"{len(result)} CSV exporté(s).",
+                    f'{len(result)} CSV exporté(s).<br><a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
 
@@ -414,7 +435,8 @@ class SecateurPanel(QDockWidget):
                 self.settings.pdf_title = title
 
                 self._set_status(
-                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}",
+                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}<br>"
+                    f'<a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
 
@@ -473,3 +495,7 @@ class SecateurPanel(QDockWidget):
         self.export_csv_button.setEnabled(bool(self._resolve_result_layers()))
 
         self._feedback = None
+
+    def _on_status_link_clicked(self, path: str) -> None:
+        """Open export folder."""
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))

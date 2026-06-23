@@ -30,10 +30,28 @@ class SettingsManager:
     """
 
     BASE_KEY = "secateur"
-    DEFAULT_LOGO = "PREF_Cote_d_Or_CMJN_295_432px_Marianne.jpg"
+    DEFAULT_LOGO = "logo.png"
 
     def __init__(self):
         self._settings = QgsSettings()
+
+    # ~~~~~~~~~~~~~~~ raster ~~~~~~~~~~~~~~~#
+    @property
+    def include_raster(self) -> bool:
+        raw = self._settings.value(
+            f"{self.BASE_KEY}/include_raster",
+            False,
+        )
+        if isinstance(raw, bool):
+            return raw
+        return str(raw).lower() in ("true", "1", "yes")
+
+    @include_raster.setter
+    def include_raster(self, value: bool) -> None:
+        self._settings.setValue(
+            f"{self.BASE_KEY}/include_raster",
+            bool(value),
+        )
 
     # ~~~~~~~~~~~~~~~ author ~~~~~~~~~~~~~~~#
     @property
