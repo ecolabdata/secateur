@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale et la production de GeoPDF multicouches.
+Plugin QGIS d'intersection spatiale automatique pour l'analyse territoriale et la production de PDF multicouches.
 </p>
 
 <p align="center">
@@ -23,8 +23,8 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
 ```text
 1. Charger un projet QGIS
 2. Sélectionner une parcelle
-3. Cliquer sur "Réaliser l’intersection"
-4. Exporter en CSV ou GeoPDF
+3. Cliquer sur "Réaliser l'intersection"
+4. Exporter en PDF ou CSV
 ```
 
 ![Quick Start](docs/img/workflow.gif)
@@ -82,35 +82,32 @@ Plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale 
 
 # 🎯Présentation
 
-**Sécateur** est un plugin QGIS permettant d’automatiser des opérations d’intersection spatiale sur un grand nombre de couches géographiques.
+**Sécateur** est un plugin QGIS permettant d'automatiser des opérations d'intersection spatiale sur un grand nombre de couches géographiques.
 
-Le plugin a été conçu pour répondre à des besoins d’instruction territoriale et réglementaire :
+Le plugin a été conçu pour répondre à des besoins d'instruction territoriale et réglementaire :
 
-- identification automatique des zonages impactant une parcelle ;
-- croisement rapide de données métiers ;
-- génération de rapports exploitables ;
-- production de GeoPDF multicouches.
+- identification automatique des zonages impactant une entitée cadastrale via le croisement rapide de données métiers ;
+- génération de rapports exploitables via la production de PDF multicouches.
 
 Le fonctionnement repose sur un principe simple :
 
 1. sélectionner une seule entité ;
-2. lancer l’intersection ;
-3. générer automatiquement les couches résultats ;
-4. exporter les résultats au format CSV et/ou GeoPDF.
+2. lancer l'intersection et générer automatiquement les couches résultats ;
+3. exporter les résultats au format PDF et/ou CSV.
 
 
 
 # 👥 Contexte et besoin métier
 
-Le plugin s’inspire directement des problématiques rencontrées lors de l’instruction ADS (Application du Droit des Sols) en DDT, notamment dans le cadre de l’analyse :
+Le plugin s'inspire directement des problématiques rencontrées lors de l'instruction d'application du droit des sols (ADS) en DDT, notamment dans le cadre de l'analyse :
 
-- des Servitudes d’Utilité Publique (SUP),
+- des Servitudes d'Utilité Publique (SUP),
 - des zonages réglementaires,
 - des risques,
 - des contraintes environnementales,
-- des documents d’urbanisme.
+- des documents d'urbanisme.
 
-Dans de nombreux contextes métier, les instructeurs doivent consulter une grande quantité de couches thématiques afin de déterminer quels enjeux concernent une parcelle cadastrale donnée. Cette opération devient rapidement longue, répétitive et source d’erreurs lorsqu’elle est réalisée manuellement.
+Dans de nombreux contextes métier, les instructeurs doivent consulter une grande quantité de couches thématiques afin de déterminer quels enjeux concernent une parcelle cadastrale donnée. Cette opération devient rapidement longue, répétitive et source d'erreurs lorsqu'elle est réalisée manuellement.
 
 Le besoin fonctionnel identifié était donc :
 
@@ -121,7 +118,7 @@ Le besoin fonctionnel identifié était donc :
 
 Le plugin reprend cette logique dans une approche plus modulaire et générique adaptée à QGIS 3.34+.
 
-Les problématiques métier d’origine sont détaillées dans la notice DDT21 du plugin historique « Instruction_ADS ».
+Les problématiques métier d'origine sont détaillées dans la notice DDT21 du plugin historique « [Instruction_ADS](https://github.com/tomflyjc/Instruction_ADS) ».
 
 
 
@@ -132,40 +129,18 @@ Les problématiques métier d’origine sont détaillées dans la notice DDT21 d
 
 | Fonction | Description |
 |---|---|
-| ✂️ Intersection automatique | Intersection de toutes les couches visibles |
-| 🌍 Reprojection CRS | Harmonisation automatique des projections |
-| 🛠️ Correction géométries | Utilisation de `native:fixgeometries` |
+| ✂️ Intersection spatiale | Intersection de toutes les **couches visibles** |
+| 🌍 Reprojection CRS | Harmonisation des projections |
+| 🛠️ Correction géométries | Correction des géométries invalides |
 | 📄 Export CSV | Export tabulaire des intersections |
-| 🗺️ GeoPDF | PDF multicouches interactif |
+| 🗺️ PDF | PDF multicouches |
 | 📚 Légende dynamique | Génération automatique |
-| 🧱 WFS support | Compatible flux distants |
-
-## Intersection spatiale automatique
-
-- intersection d’une entité avec toutes les couches visibles ;
-- prise en charge des couches locales et WFS ;
-- reprojection automatique dans le CRS du projet ;
-- correction automatique des géométries invalides ;
-- création automatique des couches résultats.
-
+| 🧱 WFS/WMS support | Compatible flux distants |
 
 
 ## Gestion automatique des groupes QGIS
 
-Le plugin crée automatiquement :
-
-```text
-Résultats secateur
-```
-
-et :
-
-```text
-Objets créés
-```
-
-afin d’organiser les données temporaires.
-
+Le plugin crée automatiquement un groupe résultat : `Résultats secateur` et `Objets cible` afin d'organiser les données temporaires.
 
 
 ## Export CSV
@@ -175,10 +150,9 @@ afin d’organiser les données temporaires.
 - format compatible tableurs et traitements externes.
 
 
+## Export PDF
 
-## Export GeoPDF
-
-- génération d’un GeoPDF multicouches ;
+- génération d'un PDF multicouches ;
 - légende séparée ;
 - prise en charge des basemaps ;
 - export basé sur des modèles `.qpt`.
@@ -190,7 +164,7 @@ afin d’organiser les données temporaires.
 Compatible avec :
 
 - couches locales ;
-- couches WFS ;
+- couches WFS/WMS ;
 - couches métiers ;
 - couches cadastrales ;
 - orthophotos ;
@@ -212,31 +186,21 @@ Compatible avec :
 
 Le plugin nécessite :
 
-- un projet QGIS contenant des couches exploitables ;
-- idéalement des couches cadastrales ;
+- un projet QGIS contenant des couches vectorielles ou rasteurs ;
 - des couches métiers organisées dans le projet.
 
 Les couches cadastrales peuvent provenir :
 
 - du projet QGIS ;
-- de flux WFS ;
+- de flux WFS/wMS ;
 - de la BD Parcellaire ;
 - du plugin Cadreur ;
-- de l’API Admin Express ;
-- d’autres sources IGN ou métiers.
-
+- d'autres sources IGN ou métiers.
 
 
 ## Dépendances Python
 
-Le plugin embarque certaines dépendances dans `vendor/` afin de garantir un fonctionnement autonome.
-
-Notamment :
-
-- `pypdf`
-    
-
-Cela augmente légèrement la taille du plugin mais évite toute installation manuelle.
+Le plugin embarque certaines dépendances dans `vendor/` afin de garantir un fonctionnement autonome (notamment `pypdf`). Cela augmente légèrement la taille du plugin mais évite toute installation manuelle.
 
 </details><br>
 
@@ -245,22 +209,12 @@ Cela augmente légèrement la taille du plugin mais évite toute installation ma
 
 ## Depuis le ZIP
 
-1. Télécharger le plugin ;
+1. [Télécharger le plugin en zip](https://github.com/ecolabdata/secateur/archive/refs/heads/main.zip) ;
 2. Ouvrir QGIS ;
-3. Aller dans :
-```text
-Extensions → Installer/Gérer les extensions
-```
-
-4. Choisir :
-
-```text
-Installer depuis un ZIP
-```
-
-5. Sélectionner l’archive ;
+3. Aller dans : `Extensions → Installer/Gérer les extensions`
+4. Choisir : `Installer depuis un ZIP`
+5. Sélectionner l'archive ;
 6. Activer le plugin.
-
 
 
 ## Depuis les sources
@@ -300,22 +254,15 @@ Extensions → Gérer/Installer les extensions → Sécateur → Activer
 
 ## 1. Charger un projet QGIS
 
-Le plugin fonctionne avec :
-
-- couches WFS ;
-- couches locales ;
-- couches métiers ;
-- couches raster ;
-- orthophotos ;
-- basemaps.
+Le plugin fonctionne avec toutes les couches de QGIS.
 
 > [!WARNING]
 >
-> Les exports utilisant des couches WFS ou des basemaps peuvent être significativement plus longs.
+> Les exports utilisant des couches WFS/WMS ou des basemaps peuvent être significativement plus longs.
 >
 > Dans certains cas :
 >
-> - les temps d’export peuvent être multipliés par 10 ;
+> - les temps d'export peuvent être multipliés par 10 ;
 > - QGIS peut sembler figé pendant certains traitements lourds.
 >
 > Cela est normal, il faut requêter les couches.
@@ -324,22 +271,19 @@ Le plugin fonctionne avec :
 
 ## 2. Ouvrir le panneau Sécateur
 
-Cliquer sur l’icône :
+Cliquer sur l'icône dans la barre d'outils QGIS :
 
-```text
-Sécateur
-```
-
-dans la barre d’outils QGIS.
+![Icon Secateur](docs/img/panel_tool_secateur.png)
 
 Le panneau permet :
 
-- le lancement des intersections ;
-- les exports CSV ;
-- les exports PDF ;
-- le choix du fond cartographique ;
-- la configuration des exports.
+![Icon Secateur](docs/img/secateur_panel.png)
 
+- le lancement des intersections ;
+- le choix du fond cartographique ;
+- la configuration des exports ;
+- les exports PDF ;
+- les exports CSV.
 
 
 ## 3. Sélectionner une entité
@@ -347,37 +291,37 @@ Le panneau permet :
 Le plugin fonctionne avec :
 
 - une couche active ;
+
+OU
 - une seule entité sélectionnée.
 
-### Sélection d’une couche
+### Sélection d'une couche
 
-Dans l’arbre des couches :
+Dans l'arbre des couches :
 
 1. cliquer sur une couche vectorielle ;
 2. la rendre active.
 
 
 
-### Sélection d’une entité
+### Sélection d'une entité
 
-Utiliser l’outil QGIS :
+Utiliser l'outil QGIS :
 
-```text
-Sélectionner des entités
-```
+![Icon Secateur](docs/img/panel_tool_selection.png)
 
 Puis sélectionner une seule géométrie.
 
 > [!WARNING]
-> Le plugin nécessite exactement **1 entité sélectionnée** sinon l’exécution sera refusée.
+> Le plugin nécessite exactement **1 entité sélectionnée** sinon l'exécution sera refusée.
 
 
-## 4. Lancer l’intersection
+## 4. Lancer l'intersection
 
 Cliquer sur :
 
 ```text
-Réaliser l’intersection
+Réaliser l'intersection
 ```
 
 Le plugin :
@@ -396,6 +340,8 @@ Les résultats apparaissent dans :
 Résultats secateur
 ```
 
+> [!WARNING]
+> Le plugin fonctionne également avec les **couches rasters**, mais l'intersection est juste un filtre limité aux extents. Pour cela, cochez la case "Inclure les couches rasters".
 
 
 ## 5. Exporter les résultats
@@ -413,7 +359,7 @@ Produit :
 
 Produit :
 
-- un GeoPDF multicouches ;
+- un PDF multicouches ;
 - une légende PDF séparée ;
 - une mise en page basée sur des modèles QGIS `.qpt`.
 
@@ -426,31 +372,39 @@ flowchart LR
 
 A[Charger un projet]
 --> B[Sélectionner une entité]
---> C[Lancer l’intersection spatiale]
+--> C[Lancer l'intersection spatiale]
 --> D[Couches temporaires]
 
 D --> E[Export CSV]
-D --> F[Export GeoPDF]
+D --> F[Export PDF]
 ```
 
 
-## Export PDF / GeoPDF
+## Export PDF
 
-### Le GeoPDF
+### Le PDF
 
-Le plugin produit des GeoPDF interactifs.
+Aujourd'hui, le plugin produit des PDF multicouches pour une lecture et diffusion rapide.
 
+Historiquement, il produit aussi un GeoPDF ajourd'hui supprimé. Néanmoins, il existe encore dans une branche archivée du projet : https://github.com/ecolabdata/secateur/tree/archive/geopdf-export
 Contrairement à un PDF classique, un GeoPDF permet :
 
-- l’affichage de couches ;
-- l’activation/désactivation des calques ;
+- l'affichage de couches ;
+- l'activation/désactivation des calques ;
 - le zoom ;
 - la navigation cartographique ;
 - la consultation des attributs.
 
 Le document est lisible dans :
 
-- Adobe Acrobat Reader.
+**On Windows :**
+[Adobe acrobat reader](https://get.adobe.com/fr/reader/)
+
+**On Unix :**
+Get [Evince](https://en.wikipedia.org/wiki/Evince) :
+```
+sudo apt-get install evince
+```
 
 
 
@@ -468,10 +422,10 @@ Dans les contextes réglementaires, de nombreux zonages se superposent :
 Le GeoPDF permet alors :
 
 - de masquer certaines couches ;
-- d’analyser les intersections individuellement ;
+- d'analyser les intersections individuellement ;
 - de conserver une lecture exploitable.
 
-La logique est similaire à celle d’un projet QGIS simplifié embarqué dans un PDF.
+La logique est similaire à celle d'un projet QGIS simplifié embarqué dans un PDF.
 
 Les usages historiques du GeoPDF sont décrits dans la documentation DDT21 du plugin ADS.
 
@@ -479,7 +433,7 @@ Les usages historiques du GeoPDF sont décrits dans la documentation DDT21 du pl
 
 ### Gestion des légendes
 
-Les légendes sont exportées séparément afin d’éviter :
+Les légendes sont exportées séparément afin d'éviter :
 
 - la surcharge graphique ;
 - les crashs QGIS ;
@@ -499,7 +453,7 @@ Le plugin :
 
 Le plugin utilise deux modèles QGIS `.qpt`.
 
-## GeoPDF
+## PDF
 
 ```text
 resources/report_page.qpt
@@ -571,9 +525,10 @@ secateur/
 ├── core/
 │   ├── export/
 │   ├── utils/
-│   └── intersector.py
+│   └── intersection/
 ├── ui/
 ├── resources/
+├── docs/
 └── vendor/
 ```
 
@@ -591,42 +546,12 @@ Le plugin suit une architecture :
 
 |Module|Rôle|
 |---|---|
-|`plugin.py`|Point d’entrée QGIS|
+|`plugin.py`|Point d'entrée QGIS|
 |`ui/panel.py`|Interface utilisateur|
 |`ui/service.py`|Logique métier|
-|`core/intersector.py`|Intersections spatiales|
+|`core/intersection_processing.py`|Intersections spatiales|
 |`core/export/`|Exports CSV/PDF|
 |`core/utils/`|Helpers et utilitaires|
-
-
-### Diagramme
-```mermaid
-graph TD
-    A[UI Layer] --> B[Service Layer]
-    A --> C[UI Components]
-    B --> D[Core Logic]
-    B --> E[GIS Processing]
-    D --> F[Utils]
-    E --> G[QGIS Processing]
-    E --> H[Layer Management]
-    I[Export Layer] --> J[PDF Export]
-    I --> K[CSV Export]
-    J --> L[Layout Management]
-    J --> M[Legend Generation]
-    J --> N[PDF Export Engine]
-    K --> O[File I/O Utilities]
-    
-    classDef ui fill:#cde4ff,stroke:#64b5f6,stroke-width:2px;
-    classDef service fill:#f8f5e8,stroke:#d4af37,stroke-width:2px;
-    classDef core fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
-    classDef infra fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
-    classDef export fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
-
-    class A,B,C service
-    class D,E,F,G,H,D core
-    class I,J,K,L,M,N,O,P export
-    class A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P infra
-```
 
 
 
@@ -680,6 +605,346 @@ sequenceDiagram
     P->>U: Show status message
 
 ```
+
+# Choix techniques et leur concrétisation dans la codebase
+
+L'architecture observée repose sur cinq principes structurants :
+
+- **Délégation maximale à QGIS**
+- **Découplage métier / UI**
+- **Isolation des objets générés**
+- **Optimisation des traitements géospatiaux**
+- **Forte orientation export et reproductibilité**
+
+On se propose ici de détailler les 14 choix techniques prépondérants :
+
+1. Indépendance des formats de données et API.
+2. S'appuyer au maximum sur les fonctions QGIS.
+3. Utilisation de la visibilité des couches.
+4. Groupe temporaire pour la symbologie.
+5. Optimisation des traitements d'intersection.
+6. Gestion spécifique des couches raster.
+7. Fond de carte via groupe dédié.
+8. Utilisation massive de dataclass et séparation métier/service.
+9. UX pilotée par ``set_status``.
+10. Interface volontairement minimaliste.
+11. Utilisation de modèles QPT pour les PDF.
+12. Pagination basée sur des seuils fixes.
+13. Utilisation de pypdf pour fusionner les pages.
+14. Utilisation du répertoire ``vendor/``.
+
+## 1. Indépendance des formats de données et API
+
+### Choix
+Fonctionner avec le plus de cas d'usage possible sans dépendre d'un format de données particulier ni d'une API externe.
+
+### Implémentation
+- Le cœur applicatif manipule les abstractions QGIS :
+  - `QgsMapLayer`
+  - `QgsVectorLayer`
+  - `QgsRasterLayer`
+- Aucun couplage métier à :
+  - GeoJSON
+  - PostGIS
+  - API REST
+  - structure de données spécifique
+- Les traitements travaillent sur des couches préparées (`PreparedLayer`) indépendamment de leur provenance.
+- Utilisation extensive de `@dataclass` pour représenter les états métier plutôt que des structures dépendantes du stockage.
+- Architecture découpée :
+  - `ui/`
+  - `core/`
+  - `services/`
+  - `export/`
+
+
+## 2. S'appuyer au maximum sur les fonctions QGIS
+
+### Choix
+Réutiliser les capacités natives de QGIS afin de réduire la complexité métier et faciliter la maintenance.
+
+### Implémentation
+- Traitements géospatiaux délégués au moteur Processing :
+  - `processing.run("native:extractbylocation")`
+  - `processing.run("native:reprojectlayer")`
+  - `processing.run("native:fixgeometries")`
+  - `processing.run("gdal:warpreproject")`
+- Le plugin orchestre les traitements mais ne réimplémente pas les algorithmes SIG.
+- Gestion des erreurs et fallback autour des appels QGIS plutôt que logique propriétaire.
+
+
+## 3. Utilisation de la visibilité des couches
+
+### Choix
+Utiliser la visibilité des couches comme mécanisme fonctionnel pour déterminer quelles couches participent aux traitements.
+
+### Implémentation
+- Recherche des couches visibles uniquement :
+  - `find_layers()`
+  - `iter_visible_layers()`
+- Gestion temporaire de visibilité :
+  - `temporary_visible_layers()`
+- Pendant les exports :
+  - masquage global ;
+  - réactivation uniquement :
+    - des résultats ;
+    - du fond de carte.
+- Les fonctions utilitaires :
+  - `clear_all_visibility()`
+  - `set_layer_and_parents_visible()`
+
+
+## 4. Groupe temporaire pour la symbologie
+
+### Choix
+Créer des groupes temporaires pour isoler les objets générés et permettre leur nettoyage après export.
+
+### Implémentation
+- Groupes dédiés :
+  - `"Objet cible"`
+  - `"Résultats secateur"`
+- Fonctions :
+  - `get_created_objects_group()`
+  - `get_results_group()`
+- Les couches générées sont injectées dans ces groupes.
+- Nettoyage automatique après utilisation.
+
+Objectif :
+- préserver l'état du projet utilisateur ;
+- éviter de polluer l'arborescence QGIS.
+
+
+## 5. Optimisation des traitements d'intersection
+
+### Choix
+Minimiser le coût des traitements spatiaux.
+
+### Implémentation
+
+#### Filtrage préalable
+- `filter_layers_by_extent()`
+- élimination des couches hors emprise.
+
+#### Mise en cache
+- `TransformCache`
+- évite les recalculs de transformation CRS.
+
+#### Réduction du volume traité
+- `_create_spatial_subset()`
+- `request.setFilterRect()`
+- `materialize()`
+
+#### Préparation des couches
+- `_prepare_vector_layer()`
+- `_prepare_raster_layer()`
+
+#### Instrumentation performances
+- `timed_call()`
+- métriques :
+  - `bbox_seconds`
+  - `reproj_seconds`
+  - `extract_seconds`
+
+
+## 6. Gestion spécifique des couches raster
+
+### Choix
+Considérer que l'intersection raster n'a pas de sens métier ; utiliser uniquement l'emprise.
+
+### Implémentation
+- Distinction explicite :
+  - couches vectorielles → intersection réelle ;
+  - couches raster → conservation.
+- `_prepare_raster_layer()` produit une copie exploitable.
+- Utilisation de :
+  - `clone_raster_layer()`
+- Aucun traitement de découpe spatiale raster.
+
+
+## 7. Fond de carte via groupe dédié
+
+### Choix
+Centraliser les fonds de carte dans un groupe spécifique.
+
+### Implémentation
+- Constante :
+  `BASEMAP_GROUP_NAME = "Fond de carte"`
+- Gestion :
+  - `get_basemap_group()`
+- UI :
+  - `BasemapComboBox`
+- Le composant n'affiche que les couches appartenant au groupe.
+
+Objectif :
+- standardiser la sélection du fond utilisé dans les exports.
+
+
+## 8. Utilisation massive de dataclass et séparation métier/service
+
+### Choix
+Structurer les échanges internes et séparer logique métier et interface.
+
+### Implémentation
+
+### Dataclasses
+Exemples :
+- `IntersectionExecutionContext`
+- `LayerMetrics`
+- `IntersectionMetrics`
+- `LegendExportConfig`
+- `MultiPagePdfExportConfig`
+- `LayoutMetadata`
+- `PdfExportOptions`
+
+### Séparation des responsabilités
+
+```text
+SecateurPanel
+↓
+SecateurService
+↓
+Core Services
+↓
+Export Services
+```
+
+- `SecateurPanel` → interface.
+- `SecateurService` → orchestration métier.
+- `core/` → traitements.
+
+
+## 9. UX pilotée par `set_status`
+
+### Choix
+Guider l'utilisateur pendant toutes les étapes.
+
+### Implémentation
+- Méthode centrale :
+  `_set_status()`
+- Mise à jour :
+  - `status_label`
+- Messages pour :
+  - progression ;
+  - erreurs ;
+  - état courant ;
+  - succès export.
+- Journalisation :
+  - `logger`
+  - `QgsMessageLog`
+
+Objectif :
+- rendre les traitements compréhensibles sans ouvrir la console.
+
+
+## 10. Interface volontairement minimaliste
+
+### Choix
+Limiter le nombre d'actions visibles.
+
+### Implémentation
+
+Parcours utilisateur :
+
+```text
+1. Sélection
+↓
+2. Intersection
+↓
+3. Export
+```
+
+Boutons principaux :
+- Réaliser l'intersection
+- Exporter PDF
+- Exporter CSV
+
+Éléments secondaires :
+- paramètres ;
+- documentation.
+
+Objectif :
+- réduire la charge cognitive.
+
+
+## 11. Utilisation de modèles QPT pour les PDF
+
+### Choix
+Permettre la personnalisation des exports.
+
+### Implémentation
+- Chargement dynamique :
+  - `create_layout_from_template()`
+- Utilisation :
+  - `QDomDocument`
+  - `layout.loadFromTemplate()`
+- Templates utilisés :
+  - `report_page.qpt`
+  - `legend_layout.qpt`
+
+Conséquence :
+- le rendu est configurable sans modifier le code.
+
+
+## 12. Pagination basée sur des seuils fixes
+
+### Choix
+Préférer des règles simples plutôt qu'un moteur de calcul complexe.
+
+### Implémentation
+- Configuration :
+  - `max_legend_items_per_page`
+- Pagination :
+  - `LegendPaginationService.paginate()`
+- Utilisation de seuils fixes pour :
+  - nombre d'éléments ;
+  - découpage des pages.
+
+Objectif :
+- conserver un comportement prévisible.
+
+
+## 13. Utilisation de pypdf pour fusionner les pages
+
+### Choix
+Assembler les exports PDF sans utiliser Atlas QGIS.
+
+### Implémentation
+- Bibliothèque :
+  `pypdf`
+- Fonction :
+  `merge_pdfs()`
+- API :
+  - `PdfWriter`
+  - `append()`
+  - `write()`
+
+Objectif :
+- produire :
+  - pages cartes ;
+  - pages légendes ;
+  - document final.
+
+
+## 14. Utilisation du répertoire `vendor/`
+
+### Choix
+Garantir la portabilité du plugin.
+
+### Implémentation
+- Chargement dynamique :
+
+```python
+try:
+    import pypdf
+except ImportError:
+    sys.path.insert(0, vendor_path)
+```
+
+- Dépendances embarquées :
+  - `vendor/pypdf`
+
+Objectif :
+- exécution même si l'environnement QGIS/pytho ne contient pas les dépendances nécessaires.
+
 
 </details><br>
 
@@ -735,31 +1000,40 @@ zip -r secateur.zip secateur -x "*/.*" "*/docs/*"
 </details><br>
 
 <details>
-<summary><h1> 🧯 Dépannage</h1></summary><br>
+<summary><h1> 🧯 Dépannage & tutoriel</h1></summary><br>
 
-# Le plugin ne détecte aucune couche
+### De la donnée ouverte à l'analyse parcellaire en quelques clics
+Exemple de lien entre les collections thématiques et Sécateur : le plugin QGIS d’intersection spatiale automatique pour l’analyse territoriale et la production de GeoPDF multicouches.
+
+![Export QGIS](docs/img/exportQGIS.gif)
+
+#### [📖 Aller au guide sur _ecologie._**data.gouv**_.fr_ ](https://guides.data.gouv.fr/ecologie.data.gouv.fr/ecologie.data.gouv.fr/les-tutoriels/de-la-donnee-ouverte-a-lanalyse-parcellaire-en-quelques-clics)
+
+
+
+### Le plugin ne détecte aucune couche
 
 **Cause possible** :
 - Les couches ne sont pas visibles dans QGIS.
-- Les couches ne sont pas vectorielles.
+- La couche source n'est pas vectorielle.
 
 **Solution** :
 1. Dans QGIS, cochez la case **Visible** pour chaque couche à analyser.
-2. Vérifiez que les couches sont bien au format vectoriel (pas raster).
+2. Vérifiez que format des couches (vectoriel/raster).
 3. Redémarrez QGIS si le problème persiste.
 
 
 
-# Le plugin refuse l’exécution
+### Le plugin refuse l'exécution
 
 Vérifier :
 
-- qu’une couche active existe ;
-- qu’une seule entité est sélectionnée.
+- qu'une couche active existe ;
+- qu'une seule entité est sélectionnée.
 
 
 
-# Le GeoPDF ne fonctionne pas correctement
+### Le GeoPDF ne fonctionne pas correctement
 
 Certaines couches peuvent :
 
@@ -777,30 +1051,26 @@ Corriger les géométries
 
 2. éventuellement simplifier les géométries.
 
-Les problématiques historiques de génération GeoPDF sont documentées dans la documentation DDT21.
+Les problématiques historiques de génération GeoPDF sont documentées dans la documentation de « [Instruction_ADS](https://github.com/tomflyjc/Instruction_ADS) » de la DDT21.
 
 
 
-# QGIS semble figé
+### QGIS semble figé
 
-Certaines opérations :
+Certaines opérations peuvent être longues. :
 
-- WFS ;
+- WFS/WMS ;
 - exports PDF ;
 - intersections massives ;
 
-peuvent être longues.
-
-QGIS peut sembler bloqué pendant les traitements.
-
-Patientez jusqu’à la fin du processus.
+QGIS peut sembler bloqué pendant les traitements : patientez jusqu'à la fin du processus.
 
 </details><br>
 
-# Limitations connues
+### Limitations connues
 
 - traitements potentiellement longs sur gros projets ;
-- exports WFS coûteux ;
+- exports WFS/WMS coûteux ;
 - GeoPDF sensible aux géométries invalides ;
 - certaines couches très lourdes peuvent provoquer des ralentissements.
 
@@ -814,4 +1084,4 @@ Patientez jusqu’à la fin du processus.
 
 # 🧭 Crédit
 
-Développé dans le cadre des travaux autour des outils Ecosphères / QGIS et des problématiques d’analyse territoriale automatisée.
+Développé dans le cadre des travaux autour des outils Ecosphères / QGIS et des problématiques d'analyse territoriale automatisée.

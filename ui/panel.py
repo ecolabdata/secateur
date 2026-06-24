@@ -26,8 +26,9 @@ from ..core.image_manager import ImageManager
 from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
-from .settings import SettingsDialog, SettingsManager
+from .settings import SettingsManager
 from .widgets.basemap_combo import BasemapComboBox
+from .widgets.settings_dialog import SettingsDialog
 
 
 @runtime_checkable
