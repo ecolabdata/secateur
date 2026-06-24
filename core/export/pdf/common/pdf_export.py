@@ -7,6 +7,7 @@ from pathlib import Path
 
 from qgis.core import QgsLayout, QgsLayoutExporter
 
+from .lifecycle.cleanup import finalize_export_cycle
 from .models import PdfExportOptions
 
 
@@ -65,8 +66,6 @@ def export_layout_to_pdf(
     result = exporter.exportToPdf(str(output_path), settings)
 
     # Perform deterministic cleanup after export
-    from .lifecycle.cleanup import finalize_export_cycle
-
     finalize_export_cycle()
     if result != QgsLayoutExporter.Success:
         error_msg = exporter.errorMessage() if hasattr(exporter, "errorMessage") else ""

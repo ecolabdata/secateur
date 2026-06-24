@@ -3,6 +3,7 @@ import os
 from qgis.PyQt.QtCore import QFile  # noqa: UP035
 
 from ..logger import logger
+from .formatting import timestamp_str
 
 
 def _icons_dir() -> str:
@@ -25,15 +26,11 @@ def resolve_output_path(output_path: str) -> tuple[str, str]:
     """
     try:
         if os.path.isdir(output_path):
-            from .formatting import timestamp_str
-
             date_hm = timestamp_str()
             filename = f"Rapport_cartographique_{date_hm}.pdf"
             full_path = os.path.join(output_path, filename)
         else:
             full_path = output_path
-            from .formatting import timestamp_str
-
             date_hm = timestamp_str()
         return full_path, date_hm
     except Exception as e:
