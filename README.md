@@ -650,11 +650,6 @@ Fonctionner avec le plus de cas d'usage possible sans dépendre d'un format de d
   - structure de données spécifique
 - Les traitements travaillent sur des couches préparées (`PreparedLayer`) indépendamment de leur provenance.
 - Utilisation extensive de `@dataclass` pour représenter les états métier plutôt que des structures dépendantes du stockage.
-- Architecture découpée :
-  - `ui/`
-  - `core/`
-  - `services/`
-  - `export/`
 
 
 ## 2. S'appuyer au maximum sur les fonctions QGIS
@@ -669,13 +664,15 @@ Réutiliser les capacités natives de QGIS afin de réduire la complexité méti
   - `processing.run("native:fixgeometries")`
   - `processing.run("gdal:warpreproject")`
 - Le plugin orchestre les traitements mais ne réimplémente pas les algorithmes SIG.
-- Gestion des erreurs et fallback autour des appels QGIS plutôt que logique propriétaire.
+- Gestion des erreurs (logs) et fallback via QGIS plutôt que réimplémentation d'une logique propriétaire :
+  - `QgsProcessingFeedback`
+  - `QgsMessageLog`
 
 
 ## 3. Utilisation de la visibilité des couches
 
 ### Choix
-Utiliser la visibilité des couches comme mécanisme fonctionnel pour déterminer quelles couches participent aux traitements.
+Utiliser la visibilité des couches de QGIS comme mécanisme fonctionnel pour déterminer quelles couches participent aux traitements.
 
 ### Implémentation
 - Recherche des couches visibles uniquement :
@@ -696,7 +693,7 @@ Utiliser la visibilité des couches comme mécanisme fonctionnel pour détermine
 ## 4. Groupe temporaire pour la symbologie
 
 ### Choix
-Créer des groupes temporaires pour isoler les objets générés et permettre leur nettoyage après export.
+Créer des groupes temporaires pour isoler les couches générées et permettre leur manipulation par l'utilisateur, et leur nettoyage après export.
 
 ### Implémentation
 - Groupes dédiés :
@@ -753,17 +750,17 @@ Considérer que l'intersection raster n'a pas de sens métier ; utiliser uniquem
 ### Implémentation
 - Distinction explicite :
   - couches vectorielles → intersection réelle ;
-  - couches raster → conservation.
+  - couches raster → filtre via l'emprise.
 - `_prepare_raster_layer()` produit une copie exploitable.
 - Utilisation de :
   - `clone_raster_layer()`
-- Aucun traitement de découpe spatiale raster.
+- Aucun traitement de découpe spatiale pour les rasters.
 
 
 ## 7. Fond de carte via groupe dédié
 
 ### Choix
-Centraliser les fonds de carte dans un groupe spécifique.
+Centraliser les fonds de carte dans un groupe spécifique, créé au besoin.
 
 ### Implémentation
 - Constante :
@@ -772,16 +769,21 @@ Centraliser les fonds de carte dans un groupe spécifique.
   - `get_basemap_group()`
 - UI :
   - `BasemapComboBox`
-- Le composant n'affiche que les couches appartenant au groupe.
+- Le composant n'affiche que les couches appartenant au groupe (et pas au sous-groupe du groupe).
+- Le composant se recharge dès qu'il est sélectionné.
 
 Objectif :
 - standardiser la sélection du fond utilisé dans les exports.
+- éviter toute dépendance à une API en permettant à l'utilisateur de choisir son fond de carte.
+
+Note:
+- les éléments du groupe `"Fond de carte"` ne sont pas intersectés.
 
 
 ## 8. Utilisation massive de dataclass et séparation métier/service
 
 ### Choix
-Structurer les échanges internes et séparer logique métier et interface.
+Structurer les échanges internes et séparer logique métier de l'interface : comprendre qu'on cherche tout particulièrement à séparer métier vs. interface.
 
 ### Implémentation
 
@@ -815,7 +817,7 @@ Export Services
 ## 9. UX pilotée par `set_status`
 
 ### Choix
-Guider l'utilisateur pendant toutes les étapes.
+Guider l'utilisateur pendant toutes les étapes et avoir une interface responsive.
 
 ### Implémentation
 - Méthode centrale :
@@ -877,11 +879,15 @@ Permettre la personnalisation des exports.
   - `QDomDocument`
   - `layout.loadFromTemplate()`
 - Templates utilisés :
-  - `report_page.qpt`
-  - `legend_layout.qpt`
+  - `report_page.qpt` → pour le PDF multipage
+  - `legend_layout.qpt` → pour la légénde
 
 Conséquence :
 - le rendu est configurable sans modifier le code.
+- utilisation de IDs obligatoires dans les éléments du QPT.
+
+Note :
+- on injecte nos données dans les modèles, page par page, puis on fusionne.
 
 
 ## 12. Pagination basée sur des seuils fixes
@@ -891,15 +897,28 @@ Préférer des règles simples plutôt qu'un moteur de calcul complexe.
 
 ### Implémentation
 - Configuration :
-  - `max_legend_items_per_page`
+  - `max_legend_items_per_page: int = 20`
 - Pagination :
   - `LegendPaginationService.paginate()`
+  - `LegendItemCounter`
+  ```
+  Cost is calculated based on:
+    - Title (always 1)
+    - Symbols (1 each)
+    - Categories (1 each)
+    - Ranges (1 each)
+    - Rules (1 each)
+    - Fallback (5)
+  ```
 - Utilisation de seuils fixes pour :
   - nombre d'éléments ;
   - découpage des pages.
 
 Objectif :
 - conserver un comportement prévisible.
+
+Note :
+- utilisation de magic numbers non optimale : voir si comportement à conserver dans les prochaines versions de QGIS.
 
 
 ## 13. Utilisation de pypdf pour fusionner les pages
@@ -943,7 +962,7 @@ except ImportError:
   - `vendor/pypdf`
 
 Objectif :
-- exécution même si l'environnement QGIS/pytho ne contient pas les dépendances nécessaires.
+- exécution même si l'environnement QGIS/python ne contient pas les dépendances nécessaires.
 
 
 </details><br>
