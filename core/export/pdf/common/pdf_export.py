@@ -17,7 +17,6 @@ def build_pdf_export_settings(
     """Build PDF export settings from options."""
     settings = QgsLayoutExporter.PdfExportSettings()
     settings.dpi = options.dpi
-    settings.writeGeoPdf = options.write_geopdf
     settings.forceVectorOutput = options.force_vector_output
     settings.exportLayersAsVectors = options.export_layers_as_vectors
     settings.exportMetadata = options.export_metadata
@@ -60,9 +59,6 @@ def export_layout_to_pdf(
         raise RuntimeError("Layout contains no items; template may have failed to load.")
 
     result = exporter.exportToPdf(str(output_path), settings)
-    # Retry without GeoPDF flag if needed (code 4)
-    if result != QgsLayoutExporter.Success and result == QgsLayoutExporter.MemoryError:
-        settings.writeGeoPdf = False
     result = exporter.exportToPdf(str(output_path), settings)
 
     # Perform deterministic cleanup after export

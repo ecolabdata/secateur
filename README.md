@@ -40,7 +40,7 @@ Plugin QGIS d'intersection spatiale automatique pour l'analyse territoriale et l
    - [Intersection spatiale automatique](#intersection-spatiale-automatique)
    - [Gestion automatique des groupes QGIS](#gestion-automatique-des-groupes-qgis)
    - [Export CSV](#export-csv)
-   - [Export GeoPDF](#export-geopdf)
+   - [Export Geo](#export-pdf)
    - [Compatibilité données](#compatibilité-données)
 6. [🌱 Prérequis](#prérequis)
    - [Logiciels](#logiciels)
@@ -56,7 +56,7 @@ Plugin QGIS d'intersection spatiale automatique pour l'analyse territoriale et l
    - [4. Lancer l'intersection](#4-lancer-lintersection)
    - [5. Exporter les résultats](#5-exporter-les-résultats)
    - [Workflow détaillé](#workflow-détaillé)
-   - [Export PDF / GeoPDF](#export-pdf--geopdf)
+   - [Export PDF](#export-pdf)
 9. [🎨 Personnalisation des modèles QPT](#-personnalisation-des-modèles-qpt)
    - [Modifier un modèle](#modifier-un-modèle)
    - [IDs obligatoires](#ids-obligatoires)
@@ -523,10 +523,57 @@ secateur/
 ├── metadata.txt
 ├── plugin.py
 ├── core/
+│   ├── constants.py
+│   ├── logger.py
+│   ├── image_manager.py
+│   ├── intersection/
+│   │   ├── intersection_processing.py
+│   │   ├── profiling.py
+│   │   ├── intersection_results.py
+│   │   ├── intersection_context.py
+│   │   └── intersection_metrics.py
 │   ├── export/
-│   ├── utils/
-│   └── intersection/
+│   │   ├── csv/
+│   │   │   └── export.py
+│   │   └── pdf/
+│   │       ├── common/
+│   │       │   ├── models.py
+│   │       │   ├── template_loader.py
+│   │       │   ├── path_resolver.py
+│   │       │   ├── pdf_export.py
+│   │       │   ├── lifecycle/
+│   │       │   │   ├── cleanup.py
+│   │       │   │   └── refresh.py
+│   │       │   └── layout/
+│   │       │       ├── extent.py
+│   │       │       ├── visibility.py
+│   │       │       ├── metadata.py
+│   │       │       └── items.py
+│   │       ├── multi_pdf/
+│   │       │   ├── service.py
+│   │       │   ├── config.py
+│   │       │   └── layout.py
+│   │       └── legend/
+│   │           ├── service.py
+│   │           ├── config.py
+│   │           ├── legend_tree.py
+│   │           ├── pagination.py
+│   │           ├── items.py
+│   │           └── layout.py
+│   └── utils/
+│       ├── feedback.py
+│       ├── layers.py
+│       ├── rendering.py
+│       ├── visibility.py
+│       ├── layer_resolver.py
+│       ├── path.py
+│       └── formatting.py
 ├── ui/
+│   ├── panel.py
+│   ├── service.py
+│   └── widgets/
+│       ├── basemap_combo.py
+│       └── settings_dialog.py
 ├── resources/
 ├── docs/
 └── vendor/
@@ -541,7 +588,6 @@ Le plugin suit une architecture :
 - découplée UI / métier.
 
 
-
 ## Couches principales
 
 |Module|Rôle|
@@ -549,7 +595,7 @@ Le plugin suit une architecture :
 |`plugin.py`|Point d'entrée QGIS|
 |`ui/panel.py`|Interface utilisateur|
 |`ui/service.py`|Logique métier|
-|`core/intersection_processing.py`|Intersections spatiales|
+|`core/intersection/intersection_processing.py`|Intersections spatiales|
 |`core/export/`|Exports CSV/PDF|
 |`core/utils/`|Helpers et utilitaires|
 

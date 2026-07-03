@@ -3,17 +3,13 @@ from pathlib import Path
 
 
 @dataclass(slots=True)
-class LayoutMetadata:
-    title: str
-    author: str
-    date_text: str
-    logo_path: Path | None = None
-
-
-@dataclass(slots=True)
 class PdfExportOptions:
+    """Shared PDF export options for all export configurations."""
+
+    output_path: Path
+    template_path: Path
     dpi: int = 300
-    write_geopdf: bool = False
+    page_size: str = "A4"
     force_vector_output: bool = True
     export_layers_as_vectors: bool = True
     export_metadata: bool = True

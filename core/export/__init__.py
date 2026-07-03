@@ -1,6 +1,6 @@
 """Export package facade.
 
-Provides convenient imports for CSV, GeoPDF and multi-page PDF export functions.
+Provides convenient imports for CSV, legend and multi-page PDF export functions.
 """
 
 from .csv.export import export_results_to_csv

@@ -2,16 +2,16 @@ from dataclasses import dataclass
 
 from qgis.core import (
     QgsLayoutItemLabel,
-    QgsLayoutItemLegend,
+    QgsLayoutItemMap,
 )
 
 from ..common.layout.metadata_items import MetadataLayoutItems
 
 
 @dataclass(slots=True)
-class LegendLayoutItems(
+class MultiPdfLayoutItems(
     MetadataLayoutItems,
 ):
-    legend: QgsLayoutItemLegend
+    map_item: QgsLayoutItemMap
 
     page_item: QgsLayoutItemLabel | None

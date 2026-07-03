@@ -25,6 +25,10 @@ def export_results_to_multi_page_pdf(
         title=title,
         author=author,
         logo_path=logo_path,
+    ).with_export_params(
+        result_layers=result_layers,
+        basemap_layer=basemap_layer,
+        feedback=feedback,
     )
 
     service = MultiPagePdfExportService(
@@ -32,8 +36,5 @@ def export_results_to_multi_page_pdf(
         config,
     )
 
-    return service.export(
-        result_layers=result_layers,
-        basemap_layer=basemap_layer,
-        feedback=feedback,
-    )
+    # Call the base class export method which handles the common logic
+    return service.export()

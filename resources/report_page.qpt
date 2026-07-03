@@ -1,4 +1,4 @@
-<Layout worldFileMap="{999ea60e-b705-4444-9539-8b1a5b650440}" units="mm" printResolution="300" name="GeoPDF">
+<Layout worldFileMap="{999ea60e-b705-4444-9539-8b1a5b650440}" units="mm" printResolution="300" name="Report PDF">
  <Snapper snapToGrid="0" snapToGuides="1" tolerance="5" snapToItems="1"/>
  <Grid resUnits="mm" resolution="10" offsetX="0" offsetUnits="mm" offsetY="0"/>
  <PageCollection>
