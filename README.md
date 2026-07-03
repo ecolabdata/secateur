@@ -20,6 +20,10 @@ Plugin QGIS d'intersection spatiale automatique pour l'analyse territoriale et l
 
 # ⚡ Quick Start
 
+
+### <kbd>[**Télécharger le plugin**](https://github.com/ecolabdata/secateur/archive/refs/heads/main.zip)</kbd>
+
+
 ```text
 1. Charger un projet QGIS
 2. Sélectionner une parcelle
@@ -387,6 +391,7 @@ D --> F[Export PDF]
 Aujourd'hui, le plugin produit des PDF multicouches pour une lecture et diffusion rapide.
 
 Historiquement, il produit aussi un GeoPDF ajourd'hui supprimé. Néanmoins, il existe encore dans une branche archivée du projet : https://github.com/ecolabdata/secateur/tree/archive/geopdf-export
+
 Contrairement à un PDF classique, un GeoPDF permet :
 
 - l'affichage de couches ;
@@ -397,11 +402,11 @@ Contrairement à un PDF classique, un GeoPDF permet :
 
 Le document est lisible dans :
 
-**On Windows :**
+**Sur Windows :**
 [Adobe acrobat reader](https://get.adobe.com/fr/reader/)
 
-**On Unix :**
-Get [Evince](https://en.wikipedia.org/wiki/Evince) :
+**Sur Unix :**
+Obtenir [Evince](https://en.wikipedia.org/wiki/Evince) :
 ```
 sudo apt-get install evince
 ```
@@ -1172,7 +1177,7 @@ Certaines opérations peuvent être longues. :
 
 QGIS peut sembler bloqué pendant les traitements : patientez jusqu'à la fin du processus.
 
-</details><br>
+</details>
 
 ### Limitations connues
 
