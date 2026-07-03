@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..compat import RichText
 from ..core.constants import BASEMAP_GROUP_NAME
 from ..core.export import export_legend, export_results_to_csv, export_results_to_multi_page_pdf
 from ..core.image_manager import ImageManager
@@ -99,7 +100,7 @@ class SecateurPanel(QDockWidget):
             2. Intersecter les couches'
         )
         first_label.setOpenExternalLinks(True)
-        first_label.setTextFormat(Qt.RichText)
+        first_label.setTextFormat(RichText)
         layout.addWidget(first_label)
 
         btn_row = QHBoxLayout()
@@ -175,12 +176,12 @@ class SecateurPanel(QDockWidget):
             style="color: blue;">Documentation du plugin</a>'
         )
         doc_label.setOpenExternalLinks(True)
-        doc_label.setTextFormat(Qt.RichText)
+        doc_label.setTextFormat(RichText)
         layout.addWidget(doc_label)
 
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
-        self.status_label.setTextFormat(Qt.RichText)
+        self.status_label.setTextFormat(RichText)
         self.status_label.setOpenExternalLinks(False)
         self.status_label.linkActivated.connect(self._on_status_link_clicked)
         layout.addWidget(self.status_label)
