@@ -1,0 +1,613 @@
+# Graphe de dépendances entre modules
+
+Ce graphe représente les dépendances **effectives** observées dans la codebase.
+
+Lecture :
+
+* flèche `A → B` = *A dépend de B pour fonctionner* ;
+* les modules proches du haut pilotent les cas d'usage ;
+* les modules proches du bas sont des briques techniques ;
+* QGIS Runtime constitue un composant transversal utilisé directement par plusieurs sous-systèmes.
+
+```text
+┌──────────────────────────────────────────┐
+│                  UI                      │
+│             ui/panel.py                  │
+│            (SecateurPanel)               │
+└──────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────┐
+│               SERVICE                    │
+│            ui/service.py                 │
+│          (SecateurService)               │
+└──────────────────────────────────────────┘
+          │               │
+          │               │
+          ▼               ▼
+ ┌─────────────────┐   ┌─────────────────┐
+ │  Intersection   │   │     Export      │
+ │     Engine      │   │     Engine      │
+ └─────────────────┘   └─────────────────┘
+
+
+══════════════════════════════════════════════════════════════
+1. Gestion des couches et visibilité
+══════════════════════════════════════════════════════════════
+
+core/utils/layers.py
+│
+├── find_group()
+├── get_or_create_group()
+├── get_results_group()
+├── get_created_objects_group()
+├── get_basemap_group()
+├── iterate_layers()
+│
+├────────────► core/constants.py
+├────────────► core/logger.py
+│
+▼
+QGIS LayerTree API
+
+
+core/utils/visibility.py
+│
+├── clear_all_visibility()
+├── set_layer_visible()
+├── set_layer_and_parents_visible()
+│
+└──────────────► layers.py
+
+
+══════════════════════════════════════════════════════════════
+2. Moteur d'intersection
+══════════════════════════════════════════════════════════════
+
+core/intersection/intersection_processing.py
+│
+├── prepare_layers()
+├── intersect_layers()
+├── _prepare_vector_layer()
+├── _prepare_raster_layer()
+├── _create_spatial_subset()
+│
+├─────────────► intersection_context.py
+│                  │
+│                  ├── IntersectionExecutionContext
+│                  └── TransformCache
+│
+├─────────────► intersection_metrics.py
+│                  │
+│                  ├── LayerMetrics
+│                  └── IntersectionMetrics
+│
+├─────────────► intersection_results.py
+│
+├─────────────► profiling.py
+│
+├─────────────► utils/feedback.py
+│
+└─────────────► QGIS Processing
+                   │
+                   ├── native:extractbylocation
+                   ├── native:reprojectlayer
+                   ├── native:fixgeometries
+                   └── gdal:warpreproject
+
+
+══════════════════════════════════════════════════════════════
+3. Export CSV
+══════════════════════════════════════════════════════════════
+
+csv/export.py
+│
+├────────────► utils.layers
+├────────────► utils.formatting
+│
+└────────────► QApplication
+
+
+══════════════════════════════════════════════════════════════
+4. Export PDF
+══════════════════════════════════════════════════════════════
+
+```text
+pdf
+│
+├────────► multi_pdf
+│
+├────────► legend
+│
+└────────► common
+```
+
+### Multi-page PDF
+
+```text
+multi_pdf
+│
+├── service.py
+├── config.py
+├── layout_factory.py
+├── page_builder.py
+├── layout.py
+└── items.py
+
+service.py
+│
+├────────────► common/export/base_export_service.py
+├────────────► common/export/collaborators.py
+├────────────► layout_factory.py
+└────────────► common/models
+```
+
+```text
+layout_factory.py
+│
+├────────────► page_builder.py
+├────────────► common/layout/extent.py
+├────────────► common/export/collaborators.py
+└────────────► utils.feedback
+```
+
+```text
+page_builder.py
+        │
+        ▼
+layout.py
+```
+
+---
+
+### Legend PDF
+
+```text
+legend
+│
+├── service.py
+├── config.py
+├── layout.py
+├── legend_tree.py
+├── pagination.py
+└── items.py
+
+service.py
+│
+├────────────► common/export/base_export_service.py
+├────────────► common/export/collaborators.py
+├────────────► layout.py
+├────────────► pagination.py
+└────────────► common/models
+```
+
+---
+
+### Infrastructure PDF commune
+
+```text
+common
+│
+├── export/
+│      │
+│      ├── base_export_service.py
+│      ├── collaborators.py
+│      ├── pdf_merger.py
+│      └── base_export_config_factory.py
+│
+├── layout/
+│      ├── base_layout.py
+│      ├── extent.py
+│      ├── metadata.py
+│      ├── metadata_items.py
+│      ├── visibility.py
+│      └── items.py
+│
+├── lifecycle/
+│      ├── cleanup.py
+│      └── refresh.py
+│
+├── template_loader.py
+├── pdf_export.py
+├── path_resolver.py
+│
+└── models/
+       ├── metadata.py
+       └── pdf_export_options.py
+```
+
+══════════════════════════════════════════════════════════════
+5. Infrastructure transverse
+══════════════════════════════════════════════════════════════
+
+core/constants.py
+
+```text
+RESULT_GROUP_NAME
+CREATED_OBJECTS_GROUP_NAME
+BASEMAP_GROUP_NAME
+```
+
+Utilisé principalement par :
+
+```text
+utils/layers.py
+```
+
+et indirectement par les services manipulant les groupes QGIS.
+
+---
+
+core/logger.py
+
+```text
+logger
+```
+
+Utilisé par :
+
+```text
+utils/layers.py
+legend/pagination.py
+utils/path.py
+...
+```
+
+---
+
+core/utils/feedback.py
+
+```text
+update_feedback()
+report_layer_metrics()
+```
+
+Dépend de :
+
+```text
+intersection_metrics.py
+```
+
+Ce qui crée une dépendance transversale :
+
+```text
+Export
+   │
+   ▼
+utils.feedback
+   │
+   ▼
+intersection_metrics
+```
+
+══════════════════════════════════════════════════════════════
+6. Runtime QGIS
+══════════════════════════════════════════════════════════════
+
+Contrairement à une architecture strictement en couches,
+plusieurs modules utilisent directement QgsProject.instance().
+
+- `utils.layers`
+- `intersection_context`
+- `intersection_processing`
+- `LegendExportService`
+- `MultiPagePdfExportService`
+- `template_loader`
+
+Le runtime QGIS constitue donc un centre de dépendance réel.
+
+```text
+                     QgsProject
+                    /    |    \
+                   /     |     \
+                  /      |      \
+         Intersection  Export   Utils
+```
+
+══════════════════════════════════════════════════════════════
+7. Dépendances externes
+══════════════════════════════════════════════════════════════
+
+```text
+Application
+│
+├────────► QGIS API
+│              │
+│              ├── QgsProject
+│              ├── QgsMapLayer
+│              ├── QgsLayout
+│              ├── QgsProcessing
+│              ├── QgsLayerTree
+│              └── QgsLayoutExporter
+│
+└────────► vendor/
+               │
+               └── pypdf
+```
+
+---
+
+══════════════════════════════════════════════════════════════
+8. Vue condensée
+══════════════════════════════════════════════════════════════
+
+```text
+SecateurPanel
+      │
+      ▼
+SecateurService
+        │
+ ┌──────┼─────────────┐
+ ▼      ▼             ▼
+Utils  Intersection  Export
+ │        │             │
+ │        ▼             │
+ │   IntersectionContext│
+ │        │             │
+ │        ▼             ▼
+ │  IntersectionMetrics ├──────────────┐
+ │                      │              │
+ ▼                      ▼              ▼
+Layers             MultiPagePDF   LegendPDF
+ ▲                      │              │
+ │                      └──────┬───────┘
+ │                             ▼
+ │                  BasePdfExportService
+ │                             │
+ │          ┌──────────────────┼──────────────────┐
+ │          ▼                  ▼                  ▼
+ │   LayoutFactory      ExportLifecycle     PdfExporter
+ │                             │
+ │                             ▼
+ │                           pypdf
+ │
+ └───────────────► Visibility
+
+Feedback
+     │
+     ▼
+IntersectionMetrics
+
+
+Tous les sous-systèmes
+          │
+          ▼
+     QGIS Runtime
+          │
+ ┌────────┼────────┬─────────┐
+ ▼        ▼        ▼         ▼
+QgsProject QgsLayerTree QgsProcessing QgsLayout
+```
+
+---
+
+# Points structurants observés
+
+* `ui/service.py` demeure l'orchestrateur principal des cas d'usage.
+* Le moteur d'intersection est organisé autour de `IntersectionExecutionContext`, `IntersectionProcessing` et `IntersectionMetrics`, avec une séparation claire entre contexte d'exécution, traitements et résultats.
+* Le sous-système PDF repose sur une infrastructure commune (`common`) partagée par les exports multipages et les exports de légendes.
+* `BasePdfExportService` constitue le point central des exports PDF ; il mutualise le cycle de vie des exports, la gestion des layouts et la génération des documents.
+* `MultiPagePdfExportService` et `LegendExportService` sont deux implémentations spécialisées de cette infrastructure commune ; elles ne dépendent plus l'une de l'autre.
+* `utils` regroupe plusieurs services indépendants (`layers`, `visibility`, `feedback`, `rendering`, `formatting`, `path`, etc.) plutôt qu'un bloc monolithique.
+* `visibility.py` dépend explicitement de `layers.py` pour manipuler l'arbre des couches.
+* `feedback.py` dépend d'`intersection_metrics.py`, ce qui introduit un couplage transversal entre le moteur d'intersection et les services de restitution.
+* `constants.py` est principalement utilisé par les utilitaires manipulant les groupes de couches QGIS.
+* `QgsProject` et plus généralement le runtime QGIS (`QgsProject`, `QgsLayerTree`, `QgsProcessing`, `QgsLayout`) constituent le principal centre de dépendance de l'application.
+* L'architecture présente une séparation des responsabilités plus marquée qu'auparavant, notamment grâce à la factorisation du sous-système PDF autour de composants communs réutilisables.
+
+---
+
+# Graphe mermaid
+
+```mermaid
+flowchart TB
+
+%% =========================
+%% UI
+%% =========================
+
+subgraph UI
+    PANEL["ui/panel.py<br/>SecateurPanel"]
+    SERVICE["ui/service.py<br/>SecateurService"]
+end
+
+PANEL --> SERVICE
+
+
+%% =========================
+%% Domaine
+%% =========================
+
+subgraph CORE["Core métier"]
+
+LAYERS["utils/layers.py"]
+INTERSECTION["intersection_processing.py"]
+EXPORT["core/export"]
+CONSTANTS["constants.py"]
+
+end
+
+SERVICE --> LAYERS
+SERVICE --> INTERSECTION
+SERVICE --> EXPORT
+
+
+%% =========================
+%% Gestion des couches
+%% =========================
+
+subgraph LAYERS_SYSTEM["Gestion des couches"]
+
+GROUPS["Groupes de couches"]
+VISIBILITY["visibility.py"]
+LAYER_RESOLVER["layer_resolver.py"]
+
+LAYERS --> GROUPS
+LAYERS --> VISIBILITY
+LAYERS --> LAYER_RESOLVER
+
+end
+
+
+%% =========================
+%% Utilitaires
+%% =========================
+
+subgraph UTILS
+
+FEEDBACK["feedback.py"]
+FORMATTING["formatting.py"]
+PATH["path.py"]
+RENDERING["rendering.py"]
+
+end
+
+LAYERS --> FEEDBACK
+LAYERS --> FORMATTING
+LAYERS --> PATH
+LAYERS --> RENDERING
+
+
+%% =========================
+%% Intersection
+%% =========================
+
+subgraph INTERSECTION_ENGINE["Moteur d'intersection"]
+
+PROCESSING["intersection_processing.py"]
+
+CONTEXT["intersection_context.py"]
+RESULTS["intersection_results.py"]
+METRICS["intersection_metrics.py"]
+PROFILE["profiling.py"]
+
+PROCESSING --> CONTEXT
+PROCESSING --> RESULTS
+PROCESSING --> METRICS
+PROCESSING --> PROFILE
+
+CONTEXT --> METRICS
+
+end
+
+INTERSECTION --> PROCESSING
+
+
+%% =========================
+%% QGIS Processing
+%% =========================
+
+subgraph PROCESSING_RUNTIME["QGIS Processing"]
+
+EXTRACT["extractbylocation"]
+REPROJECT["reprojectlayer"]
+FIX["fixgeometries"]
+GDAL["warpreproject"]
+
+end
+
+PROCESSING --> EXTRACT
+PROCESSING --> REPROJECT
+PROCESSING --> FIX
+PROCESSING --> GDAL
+
+
+%% =========================
+%% Exports
+%% =========================
+
+subgraph EXPORTS
+
+CSV["CSV Export"]
+PDF["PDF Export"]
+
+end
+
+EXPORT --> CSV
+EXPORT --> PDF
+
+
+%% =========================
+%% PDF
+%% =========================
+
+subgraph PDF_SYSTEM["Sous-système PDF"]
+
+MULTI["MultiPagePdf"]
+LEGEND["LegendPdf"]
+
+COMMON_EXPORT["common/export"]
+COMMON_LAYOUT["common/layout"]
+COMMON_MODELS["common/models"]
+COMMON_LIFECYCLE["common/lifecycle"]
+
+BASE["BasePdfExportService"]
+
+COLLAB["Collaborators"]
+EXPORTER["PdfExporter"]
+MERGER["PdfMerger"]
+FACTORY["LayoutFactory"]
+
+MULTI --> BASE
+LEGEND --> BASE
+
+BASE --> COLLAB
+BASE --> COMMON_LAYOUT
+BASE --> COMMON_MODELS
+BASE --> COMMON_LIFECYCLE
+
+COLLAB --> FACTORY
+COLLAB --> EXPORTER
+COLLAB --> MERGER
+
+PDF --> MULTI
+PDF --> LEGEND
+
+end
+
+
+%% =========================
+%% Templates
+%% =========================
+
+subgraph TEMPLATES
+
+TEMPLATE_LOADER["template_loader.py"]
+QPT["Templates QPT"]
+
+end
+
+COMMON_LAYOUT --> TEMPLATE_LOADER
+TEMPLATE_LOADER --> QPT
+
+
+%% =========================
+%% Dépendances externes
+%% =========================
+
+subgraph EXTERNAL
+
+QGIS["QGIS API"]
+PYPDF["vendor/pypdf"]
+
+end
+
+LAYERS --> QGIS
+PROCESSING --> QGIS
+BASE --> QGIS
+
+MERGER --> PYPDF
+
+
+%% =========================
+%% Dépendances transverses
+%% =========================
+
+FEEDBACK --> METRICS
+
+VISIBILITY --> LAYERS
+
+CONSTANTS -.-> LAYERS
+CONSTANTS -.-> SERVICE
+CONSTANTS -.-> EXPORT
+```

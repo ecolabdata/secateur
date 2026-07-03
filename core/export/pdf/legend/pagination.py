@@ -27,10 +27,10 @@ class LegendPage:
     estimated_cost: int
 
 
-class LegendItemCounter:
+class LegendCostCalculator:
     """Calculate the logical cost of a layer for legend pagination."""
 
-    def count(self, layer: QgsVectorLayer) -> int:
+    def calculate(self, layer: QgsVectorLayer) -> int:
         """
         Calculate the cost of a layer in terms of legend items.
 
@@ -94,7 +94,7 @@ class LegendItemCounter:
         return count
 
 
-class LegendPaginationService:
+class LegendPaginator:
     """
     Paginate layers based on their estimated legend item cost.
     """
@@ -102,14 +102,12 @@ class LegendPaginationService:
     def __init__(
         self,
         project: QgsProject,
-        counter: LegendItemCounter,
         max_items_per_page: int,
     ):
         self.project = project
-        self.counter = counter
         self.max_items_per_page = max_items_per_page
 
-    def paginate(self, layer_names: list[str]) -> list[LegendPage]:
+    def paginate(self, layer_names: list[str], layer_costs: list[int]) -> list[LegendPage]:
         """
         Paginate layers according to their legend complexity.
 
@@ -131,7 +129,7 @@ class LegendPaginationService:
         current_page: list[str] = []
         current_cost = 0
 
-        for layer_name in layer_names:
+        for i, layer_name in enumerate(layer_names):
             layer = layers_by_name.get(layer_name)
 
             if not layer:
@@ -143,7 +141,7 @@ class LegendPaginationService:
                 logger.warning(f"Layer '{layer_name}' is not a vector layer, using fallback cost of 5")
                 layer_cost = 5
             else:
-                layer_cost = self.counter.count(layer)
+                layer_cost = layer_costs[i]
 
             logger.debug(f"Layer '{layer_name}' legend cost = {layer_cost}")
 

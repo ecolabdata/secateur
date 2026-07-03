@@ -29,7 +29,8 @@ def export_legend(
         logo_path=logo_path,
         max_legend_items_per_page=max_legend_items_per_page,
     )
-    config.dpi = dpi
+    # Update the DPI in the options
+    config.options.dpi = dpi
 
     service = LegendExportService(
         QgsProject.instance(),

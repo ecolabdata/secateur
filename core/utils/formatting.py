@@ -21,7 +21,7 @@ def timestamp_str() -> str:
 
 def display_date_str() -> str:
     """Renvoie la date courante au format « dd/mm/YYYY » utilisé dans les
-    layouts (legende et GeoPDF)."""
+    layouts (legende et pdf multipage)."""
     return datetime.now().strftime("%d/%m/%Y")
 
 

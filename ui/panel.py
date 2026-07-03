@@ -1,5 +1,6 @@
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 from qgis.core import QgsMapLayer, QgsProcessingFeedback, QgsVectorLayer
@@ -19,14 +20,16 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..compat import RichText
 from ..core.constants import BASEMAP_GROUP_NAME
-from ..core.export import export_results_to_csv, export_results_to_multi_page_pdf, export_results_to_pdf
+from ..core.export import export_legend, export_results_to_csv, export_results_to_multi_page_pdf
 from ..core.image_manager import ImageManager
 from ..core.logger import logger
 from ..core.utils.layer_resolver import LayerResolver
 from .service import ProcessResult, SecateurService
-from .settings import SettingsDialog, SettingsManager
+from .settings import SettingsManager
 from .widgets.basemap_combo import BasemapComboBox
+from .widgets.settings_dialog import SettingsDialog
 
 
 @runtime_checkable
@@ -93,11 +96,11 @@ class SecateurPanel(QDockWidget):
         first_label.setText(
             '1. Sélectionner la géométrie de référence pour l\'intersection<br>\
             <a href="https://docs.qgis.org/3.34/fr/docs/user_manual/introduction/general_tools.html#sec-selection"\
-            style="color: blue;">Documentation QGIS</a><br><br>\
+            style="color: blue;">Comment faire ?</a><br><br>\
             2. Intersecter les couches'
         )
         first_label.setOpenExternalLinks(True)
-        first_label.setTextFormat(Qt.RichText)
+        first_label.setTextFormat(RichText)
         layout.addWidget(first_label)
 
         btn_row = QHBoxLayout()
@@ -115,39 +118,39 @@ class SecateurPanel(QDockWidget):
 
         layout.addWidget(QLabel("3. Exporter les résultats"))
 
-        geopdf_frame = QFrame()
-        geopdf_frame.setFrameShape(QFrame.StyledPanel)
-        geopdf_layout = QVBoxLayout(geopdf_frame)
+        pdf_frame = QFrame()
+        pdf_frame.setFrameShape(QFrame.StyledPanel)
+        pdf_layout = QVBoxLayout(pdf_frame)
 
-        geopdf_title_label = QLabel("Export GeoPDF")
-        geopdf_title_label.setStyleSheet("font-weight: bold;")
-        geopdf_layout.addWidget(geopdf_title_label)
+        pdf_title_label = QLabel("Export PDF")
+        pdf_title_label.setStyleSheet("font-weight: bold;")
+        pdf_layout.addWidget(pdf_title_label)
 
-        geopdf_layout.addWidget(QLabel("Choisir un fond de carte (facultatif) :"))
+        pdf_layout.addWidget(QLabel("Choisir un fond de carte (facultatif) :"))
 
         self.basemap_combo = BasemapComboBox()
-        geopdf_layout.addWidget(self.basemap_combo)
+        pdf_layout.addWidget(self.basemap_combo)
 
-        geopdf_layout.addWidget(QLabel("Modifier le titre du rapport :"))
+        pdf_layout.addWidget(QLabel("Modifier le titre du rapport :"))
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Titre du GeoPDF")
+        self.title_input.setPlaceholderText("Titre du PDF")
         self.title_input.setText(self.settings.pdf_title)
-        geopdf_layout.addWidget(self.title_input)
+        pdf_layout.addWidget(self.title_input)
 
-        geopdf_row = QHBoxLayout()
+        pdf_row = QHBoxLayout()
 
-        self.export_pdf_button = QPushButton("Exporter le GeoPDF et sa légende")
+        self.export_pdf_button = QPushButton("Exporter le PDF et sa légende")
         self.export_pdf_button.clicked.connect(self._on_export_pdf)
-        geopdf_row.addWidget(self.export_pdf_button)
+        pdf_row.addWidget(self.export_pdf_button)
 
         self.edit_settings_button = QPushButton("Paramètres…")
         self.edit_settings_button.clicked.connect(self._open_settings_dialog)
-        geopdf_row.addWidget(self.edit_settings_button)
+        pdf_row.addWidget(self.edit_settings_button)
 
-        geopdf_layout.addLayout(geopdf_row)
+        pdf_layout.addLayout(pdf_row)
 
-        layout.addWidget(geopdf_frame)
-        geopdf_frame.setEnabled(False)
+        layout.addWidget(pdf_frame)
+        pdf_frame.setEnabled(False)
 
         # ~~~~~~~~~~~~~~~ csv frame ~~~~~~~~~~~~~~~#
         csv_frame = QFrame()
@@ -173,12 +176,12 @@ class SecateurPanel(QDockWidget):
             style="color: blue;">Documentation du plugin</a>'
         )
         doc_label.setOpenExternalLinks(True)
-        doc_label.setTextFormat(Qt.RichText)
+        doc_label.setTextFormat(RichText)
         layout.addWidget(doc_label)
 
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
-        self.status_label.setTextFormat(Qt.RichText)
+        self.status_label.setTextFormat(RichText)
         self.status_label.setOpenExternalLinks(False)
         self.status_label.linkActivated.connect(self._on_status_link_clicked)
         layout.addWidget(self.status_label)
@@ -187,7 +190,7 @@ class SecateurPanel(QDockWidget):
         self.setWidget(container)
 
         self.csv_frame = csv_frame
-        self.geopdf_frame = geopdf_frame
+        self.pdf_frame = pdf_frame
 
         self.basemap_combo.basemapGroupCreated.connect(self._on_basemap_group_created)
         self.basemap_combo.currentIndexChanged.connect(self._on_basemap_selected)
@@ -197,7 +200,7 @@ class SecateurPanel(QDockWidget):
         has_results = bool(self._resolve_result_layers())
 
         self.csv_frame.setEnabled(has_results)
-        self.geopdf_frame.setEnabled(has_results)
+        self.pdf_frame.setEnabled(has_results)
 
     def _set_status(self, message: str | None, level: str = "info") -> None:
         if message:
@@ -399,7 +402,7 @@ class SecateurPanel(QDockWidget):
             self._set_status("Le titre ne peut pas être vide.", "error")
             return
 
-        self._begin_busy_ui("Export GeoPDF en cours...")
+        self._begin_busy_ui("Export PDF en cours...")
 
         QTimer.singleShot(
             0,
@@ -410,17 +413,6 @@ class SecateurPanel(QDockWidget):
         feedback = self._create_feedback()
         try:
             with wait_cursor():
-                # Export both GeoPDF and multi-page PDF
-                geopdf_path = export_results_to_pdf(
-                    self._resolve_result_layers(),
-                    folder,
-                    self.settings.logo_path,
-                    basemap_layer=self._resolve_basemap(),
-                    author=self.settings.author,
-                    title=title,
-                    feedback=feedback,
-                )
-
                 # Generate multi-page PDF with same parameters
                 multipdf_path = export_results_to_multi_page_pdf(
                     self._resolve_result_layers(),
@@ -432,10 +424,21 @@ class SecateurPanel(QDockWidget):
                     feedback=feedback,
                 )
 
+                legend_output_path = Path(folder)
+                layer_names = [layer.name() for layer in self._resolve_result_layers()]
+                legend_path = export_legend(
+                    output_path=legend_output_path,
+                    layer_names=layer_names,
+                    logo_path=Path(self.settings.logo_path) if self.settings.logo_path else None,
+                    title=title,
+                    author=self.settings.author,
+                )
+
                 self.settings.pdf_title = title
 
                 self._set_status(
-                    f"GeoPDF exporté : {geopdf_path}\nPDF multi-page exporté : {multipdf_path}<br>"
+                    f"PDF multi-page exporté : {multipdf_path}<br>"
+                    f"Légende exportée : {legend_path}<br>"
                     f'<a href="{folder}">Ouvrir le dossier de sortie</a>',
                     "info",
                 )
@@ -444,7 +447,7 @@ class SecateurPanel(QDockWidget):
             logger.exception(f"Direct PDF export failed: {e}")
 
             self._set_status(
-                f"Erreur lors de l'export du GeoPDF: {e}",
+                f"Erreur lors de l'export du PDF: {e}",
                 "error",
             )
 
