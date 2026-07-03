@@ -537,23 +537,38 @@ secateur/
 │   │   │   └── export.py
 │   │   └── pdf/
 │   │       ├── common/
-│   │       │   ├── models.py
+│   │       │   ├── models/
+│   │       │   │   ├── __init__.py
+│   │       │   │   ├── metadata.py
+│   │       │   │   └── pdf_export_options.py
 │   │       │   ├── template_loader.py
 │   │       │   ├── path_resolver.py
 │   │       │   ├── pdf_export.py
 │   │       │   ├── lifecycle/
 │   │       │   │   ├── cleanup.py
 │   │       │   │   └── refresh.py
+│   │       │   ├── export/
+│   │       │   │   ├── __init__.py
+│   │       │   │   ├── base_export_service.py
+│   │       │   │   ├── base_export_config_factory.py
+│   │       │   │   ├── collaborators.py
+│   │       │   │   └── pdf_merger.py
 │   │       │   └── layout/
+│   │       │       ├── base_layout.py
 │   │       │       ├── extent.py
 │   │       │       ├── visibility.py
 │   │       │       ├── metadata.py
-│   │       │       └── items.py
+│   │       │       └── metadata_items.py
 │   │       ├── multi_pdf/
+│   │       │   ├── __init__.py
 │   │       │   ├── service.py
 │   │       │   ├── config.py
-│   │       │   └── layout.py
+│   │       │   ├── layout_factory.py
+│   │       │   ├── items.py
+│   │       │   ├── layout.py
+│   │       │   └── page_builder.py
 │   │       └── legend/
+│   │           ├── __init__.py
 │   │           ├── service.py
 │   │           ├── config.py
 │   │           ├── legend_tree.py
@@ -561,6 +576,7 @@ secateur/
 │   │           ├── items.py
 │   │           └── layout.py
 │   └── utils/
+│       ├── __init__.py
 │       ├── feedback.py
 │       ├── layers.py
 │       ├── rendering.py
@@ -596,8 +612,15 @@ Le plugin suit une architecture :
 |`ui/panel.py`|Interface utilisateur|
 |`ui/service.py`|Logique métier|
 |`core/intersection/intersection_processing.py`|Intersections spatiales|
+|`core/intersection/intersection_context.py`|Contexte d'intersection|
+|`core/intersection/intersection_results.py`|Résultats d'intersection|
+|`core/intersection/intersection_metrics.py`|Métriques d'intersection|
+|`core/intersection/profiling.py`|Profiling d'intersection|
 |`core/export/`|Exports CSV/PDF|
 |`core/utils/`|Helpers et utilitaires|
+|`core/constants.py`|Constantes du plugin|
+|`core/logger.py`|Gestion des logs|
+|`core/image_manager.py`|Gestion des images|
 
 
 
