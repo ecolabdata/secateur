@@ -640,6 +640,10 @@ Le plugin repose principalement sur :
 Toutes les couches sont reprojetées dans le CRS du projet avant traitement.
 
 
+## Calcul de l'étendue d'export
+
+La fonction `compute_export_extent` calcule un rectangle englobant (bbox) pour une couche vectorielle donnée, en ajoutant une marge de 5 % de la largeur et de la hauteur du rectangle d'origine, ce qui permet de prendre les entités adjacentes.
+
 
 ## Logs
 
@@ -701,6 +705,7 @@ On se propose ici de détailler les 14 choix techniques prépondérants :
 12. Pagination basée sur des seuils fixes.
 13. Utilisation de pypdf pour fusionner les pages.
 14. Utilisation du répertoire ``vendor/``.
+15. Ajout d'une marge de 5 % à la bbox.
 
 ## 1. Indépendance des formats de données et API
 
@@ -1032,6 +1037,20 @@ except ImportError:
 
 Objectif :
 - exécution même si l'environnement QGIS/python ne contient pas les dépendances nécessaires.
+
+
+## 15. Ajout d'une marge de 5 % à la bbox
+
+### Choix
+Ajouter une marge de 5 % à la largeur et hauteur du rectangle englobant (bbox) lors du calcul de l'étendue d'export pour inclure les entités adjacentes.
+
+### Implémentation
+- Fonction `compute_export_extent` dans `core/export/pdf/common/layout/extent.py` :
+  - Calcule l'étendue initiale de la couche
+  - Ajoute 5 % de la largeur et de la hauteur à chaque côté
+  - Retourne un rectangle englobant agrandi
+
+Cette marge permet de prendre en compte les entités adjacentes lors de l'export PDF, assurant ainsi une visualisation complète des données environnantes.
 
 
 </details><br>
