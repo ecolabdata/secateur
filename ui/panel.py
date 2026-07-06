@@ -34,8 +34,15 @@ from .widgets.settings_dialog import SettingsDialog
 
 @runtime_checkable
 class QgisInterfaceProtocol(Protocol):
-    def mainWindow(self) -> QWidget: ...
-    def activeLayer(self) -> Any: ...
+    """Subset of QGIS's ``iface`` used by the panel, for typing and testability."""
+
+    def mainWindow(self) -> QWidget:
+        """Return the QGIS main window, used as the panel's parent widget."""
+        ...
+
+    def activeLayer(self) -> Any:
+        """Return the currently active map layer, or ``None``."""
+        ...
 
 
 @contextmanager
@@ -74,6 +81,8 @@ class _SecateurState:
 
 
 class SecateurPanel(QDockWidget):
+    """Dockable panel driving the plugin's selection/intersection/export workflow."""
+
     def __init__(self, iface: QgisInterfaceProtocol, parent: QWidget | None = None) -> None:
         super().__init__("Sécateur", parent or iface.mainWindow())
         self.iface = iface

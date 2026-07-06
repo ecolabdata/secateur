@@ -35,6 +35,8 @@ Level = Literal["info", "warning", "error"]
 
 @dataclass
 class SelectionResult:
+    """Outcome of a selection attempt, with a status message for the UI."""
+
     layer: QgsVectorLayer | None
     feature: QgsFeature | None
     message: str
@@ -50,6 +52,8 @@ class SelectionResult:
 
 @dataclass
 class ProcessResult:
+    """Outcome of an intersection run, with a status message for the UI."""
+
     result_layer_ids: list[str]
     message: str
     level: Level
@@ -66,7 +70,11 @@ class ProcessResult:
 
 @runtime_checkable
 class QgisInterfaceProtocol(Protocol):
-    def activeLayer(self) -> QgsMapLayer | None: ...
+    """Subset of QGIS's ``iface`` used by the service, for typing and testability."""
+
+    def activeLayer(self) -> QgsMapLayer | None:
+        """Return the currently active map layer, or ``None``."""
+        ...
 
 
 class SecateurService:
@@ -83,6 +91,19 @@ class SecateurService:
     # ──────────────────────────────────────────────
 
     def select(self, iface: QgisInterfaceProtocol) -> SelectionResult:
+        """Validate the active layer/feature selection and prepare it for processing.
+
+        Rejects layers that are not vector layers or that belong to the
+        results group, and materializes a single selected feature into a
+        memory layer under the "created objects" group.
+
+        Args:
+            iface: QGIS interface used to read the active layer.
+
+        Returns:
+            A ``SelectionResult`` describing the outcome, with a status
+            message and level for display in the UI.
+        """
         layer = iface.activeLayer()
 
         if layer is None:
@@ -128,6 +149,16 @@ class SecateurService:
     # ──────────────────────────────────────────────
 
     def run(self, selected_layer_id: str, feedback: QgsProcessingFeedback) -> ProcessResult:
+        """Run the intersection between the selected layer and visible project layers.
+
+        Args:
+            selected_layer_id: ID of the reference vector layer.
+            feedback: Feedback object used to report progress and warnings.
+
+        Returns:
+            A ``ProcessResult`` with the IDs of the created result layers
+            and a status message/level for display in the UI.
+        """
         selected_layer = LayerResolver.get_vector(selected_layer_id)
 
         if selected_layer is None:

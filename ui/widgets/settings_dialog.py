@@ -19,6 +19,8 @@ from ..settings import SettingsManager
 
 
 class SettingsDialog(QDialog):
+    """Dialog for editing the plugin's author and logo settings."""
+
     def __init__(self, settings: SettingsManager, image_manager: ImageManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -90,6 +92,7 @@ class SettingsDialog(QDialog):
             self._selected_logo = None
 
     def get_values(self) -> dict[str, Any]:
+        """Return the edited ``author`` and ``logo`` (path or ``None``) values."""
         return {
             "author": self.author_input.text().strip(),
             "logo": self._selected_logo,
