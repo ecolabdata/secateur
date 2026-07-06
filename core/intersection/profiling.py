@@ -6,6 +6,11 @@ def timed_call(
     *args,
     **kwargs,
 ):
+    """Call *func* with the given arguments and measure its execution time.
+
+    Returns:
+        A tuple of (the return value of ``func``, elapsed time in seconds).
+    """
     start = perf_counter()
 
     result = func(

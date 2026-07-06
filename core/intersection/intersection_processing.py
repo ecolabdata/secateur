@@ -20,6 +20,8 @@ from .profiling import timed_call
 
 @dataclass(slots=True)
 class PreparedLayer:
+    """A layer alongside its processed (subset/reprojected) working copy."""
+
     source_layer: QgsVectorLayer | QgsRasterLayer
     working_layer: QgsVectorLayer | QgsRasterLayer
 

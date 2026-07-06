@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 
 @dataclass(slots=True)
 class LayerMetrics:
+    """Per-layer timing breakdown for one intersection run."""
+
     bbox_seconds: float = 0.0
     reproj_seconds: float = 0.0
     extract_seconds: float = 0.0
@@ -10,12 +12,15 @@ class LayerMetrics:
 
 @dataclass(slots=True)
 class IntersectionMetrics:
+    """Collection of per-layer timing metrics for one intersection run."""
+
     layers: dict[str, LayerMetrics] = field(default_factory=dict)
 
     def get_layer_metrics(
         self,
         layer_name: str,
     ) -> LayerMetrics:
+        """Return the ``LayerMetrics`` for *layer_name*, creating one if absent."""
         return self.layers.setdefault(
             layer_name,
             LayerMetrics(),

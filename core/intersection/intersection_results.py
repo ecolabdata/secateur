@@ -18,6 +18,12 @@ def apply_layer_presentation(
 
 
 def add_results_to_project(result_layers: list[QgsMapLayer]):
+    """Add *result_layers* to the project, grouped under the results group.
+
+    Args:
+        result_layers: Layers to add, without rendering them (they are
+            added hidden; visibility is handled separately).
+    """
     project = QgsProject.instance()
     if project is None:
         return
