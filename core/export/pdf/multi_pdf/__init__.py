@@ -20,6 +20,25 @@ def export_results_to_multi_page_pdf(
     title: str = "Résultats Secateur",
     feedback: QgsProcessingFeedback | None = None,
 ) -> str:
+    """Export *result_layers* as a multi-page PDF report.
+
+    Builds an overview page followed by one detail page per result layer
+    (beyond the first), then merges them into a single PDF.
+
+    Args:
+        result_layers: Layers to include, in display order. The first
+            layer is treated as the overview/source layer.
+        output_path: Destination path, or a directory in which a
+            timestamped filename is generated.
+        logo_path: Path to the logo image rendered on each page.
+        basemap_layer: Optional basemap layer added to every page.
+        author: Author metadata written on each page.
+        title: Title metadata written on the overview page.
+        feedback: Optional ``QgsProcessingFeedback`` used to report progress.
+
+    Returns:
+        Path of the generated PDF file, as a string.
+    """
     config = MultiPagePdfExportConfig.default(
         output_path=output_path,
         title=title,

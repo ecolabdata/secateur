@@ -145,6 +145,12 @@ class MultiPdfLayout(BasePdfLayout):
         extent_rect: QgsRectangle,
         visible_layers: list[QgsMapLayer],
     ) -> None:
+        """Zoom the layout's map item to *extent_rect* and lock *visible_layers*.
+
+        Args:
+            extent_rect: Extent the map item is zoomed to.
+            visible_layers: Layers shown on the map, in draw order.
+        """
         self.items.map_item.zoomToExtent(extent_rect)
         self.items.map_item.setLayers(visible_layers)
         self.items.map_item.setKeepLayerSet(True)
@@ -156,6 +162,13 @@ class MultiPdfLayout(BasePdfLayout):
         author: str,
         logo_path: Path | None,
     ) -> None:
+        """Render title/author/date/logo metadata onto the layout.
+
+        Args:
+            title: Document title.
+            author: Document author.
+            logo_path: Optional path to the logo image.
+        """
         metadata = LayoutMetadata(
             title=title,
             author=author,

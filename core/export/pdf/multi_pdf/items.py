@@ -12,6 +12,8 @@ from ..common.layout.metadata_items import MetadataLayoutItems
 class MultiPdfLayoutItems(
     MetadataLayoutItems,
 ):
+    """Layout items specific to a multi-page report page, plus shared metadata items."""
+
     map_item: QgsLayoutItemMap
 
     page_item: QgsLayoutItemLabel | None
