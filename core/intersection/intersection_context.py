@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
 from qgis.core import (
-    # existing imports
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,

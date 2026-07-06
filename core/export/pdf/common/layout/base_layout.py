@@ -8,13 +8,10 @@ implementation that handles template loading and item extraction.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TypeVar
 
 from qgis.core import QgsPrintLayout, QgsProject
 
 from ...common.lifecycle.refresh import stabilize_layout
-
-T = TypeVar("T", bound="BasePdfLayout")
 
 
 class BasePdfLayout(ABC):
