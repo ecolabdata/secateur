@@ -99,6 +99,7 @@ def find_tree_layer(
     root: QgsLayerTreeGroup,
     layer: QgsMapLayer,
 ):
+    """Return the ``QgsLayerTreeLayer`` node for *layer* under *root*, if any."""
     return root.findLayer(layer.id())
 
 
@@ -107,6 +108,16 @@ def iter_visible_layers(
     exclude: QgsMapLayer | None = None,
     allowed_types: tuple[type[QgsMapLayer], ...] = (QgsVectorLayer,),
 ) -> Iterator[QgsMapLayer]:
+    """Yield visible layers of *allowed_types* under *group*, recursively.
+
+    Args:
+        group: Layer tree group to walk.
+        exclude: Optional layer to skip even if visible.
+        allowed_types: Layer classes to include; others are skipped.
+
+    Yields:
+        Visible layers matching *allowed_types*, depth-first.
+    """
     for child in group.children():
         if isinstance(child, QgsLayerTreeGroup):
             if child.isVisible():
