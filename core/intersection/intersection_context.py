@@ -15,9 +15,7 @@ from .intersection_metrics import IntersectionMetrics
 
 @dataclass(slots=True)
 class IntersectionExecutionContext:
-    """
-    Données calculées une seule fois pour toute l'analyse.
-    """
+    """Data computed once for the whole analysis."""
 
     source_crs: QgsCoordinateReferenceSystem
     source_extent: QgsRectangle
@@ -63,10 +61,7 @@ def build_intersection_context(
     *,
     include_raster: bool = False,
 ) -> IntersectionExecutionContext:
-    """
-    Construit toutes les informations réutilisables liées
-    à la couche source.
-    """
+    """Build all the reusable information related to the source layer."""
 
     return IntersectionExecutionContext(
         source_crs=source_layer.crs(),
@@ -110,9 +105,7 @@ def may_intersect_source(
     context: IntersectionExecutionContext,
     layer: QgsVectorLayer | QgsRasterLayer,
 ) -> bool:
-    """
-    Test rapide d'intersection d'emprises.
-    """
+    """Quick bounding-box intersection test."""
 
     candidate_extent = layer.extent()
 

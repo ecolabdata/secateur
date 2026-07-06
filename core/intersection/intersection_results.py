@@ -11,9 +11,7 @@ def apply_layer_presentation(
     result_layer: QgsMapLayer,
     original_layer: QgsMapLayer,
 ) -> None:
-    """
-    Applique le rendu et nommage du résultat.
-    """
+    """Apply the rendering and naming of the result layer."""
     result_layer.setName(original_layer.name())
     if isinstance(result_layer, QgsVectorLayer) and isinstance(original_layer, QgsVectorLayer):
         result_layer.setRenderer(original_layer.renderer().clone())

@@ -29,9 +29,7 @@ def prepare_layers(
     context: IntersectionExecutionContext,
     feedback: QgsProcessingFeedback | None = None,
 ) -> list[PreparedLayer]:
-    """
-    Préparer les couches prêtes à être traitées.
-    """
+    """Prepare layers so they are ready to be processed."""
     prepared_layers = []
 
     for layer in layers:
@@ -51,9 +49,7 @@ def _prepare_vector_layer(
     context: IntersectionExecutionContext,
     feedback: QgsProcessingFeedback | None = None,
 ) -> PreparedLayer | None:
-    """
-    Préparer une couche vectorielle pour l'intersection.
-    """
+    """Prepare a vector layer for the intersection."""
     # Create spatial subset (bbox timing)
     subset_layer, bbox_time = timed_call(_create_spatial_subset, layer, context)
 
@@ -86,9 +82,7 @@ def _prepare_raster_layer(
     layer: QgsRasterLayer,
     context: IntersectionExecutionContext,
 ) -> PreparedLayer:
-    """
-    Préparer une couche raster pour l'intersection.
-    """
+    """Prepare a raster layer for the intersection."""
     return PreparedLayer(source_layer=layer, working_layer=layer)
 
 
@@ -129,9 +123,9 @@ def _reproject_layer(
     feedback: QgsProcessingFeedback | None = None,
     context: QgsProcessingContext | None = None,
 ) -> QgsVectorLayer | QgsRasterLayer:
-    """
-    Reprojette une couche (vecteur ou raster) vers target_crs.
-    Retourne une couche en mémoire (memory) avec le CRS cible.
+    """Reproject a layer (vector or raster) to ``target_crs``.
+
+    Returns an in-memory layer with the target CRS.
     """
     if layer.crs() == target_crs:
         return layer
@@ -139,7 +133,7 @@ def _reproject_layer(
     context = context or QgsProcessingContext()
     feedback = feedback or QgsProcessingFeedback()
 
-    # --- VECTEUR ---
+    # --- VECTOR ---
     if isinstance(layer, QgsVectorLayer):
         import processing  # type: ignore
 
@@ -247,9 +241,7 @@ def intersect_layers(
     context: IntersectionExecutionContext,
     feedback: QgsProcessingFeedback | None = None,
 ) -> list[QgsMapLayer]:
-    """
-    Calcul d'intersection uniquement.
-    """
+    """Compute the intersection only."""
     results = []
     project = QgsProject.instance()
     if project is None:

@@ -70,10 +70,9 @@ class QgisInterfaceProtocol(Protocol):
 
 
 class SecateurService:
-    """
-    Service métier.
-    Ne contient AUCUNE dépendance UI (Qt).
-    Conserve tous les effets de bord QGIS existants.
+    """Business logic service.
+
+    Contains NO UI (Qt) dependency. Preserves all existing QGIS side effects.
     """
 
     def __init__(self) -> None:

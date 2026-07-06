@@ -6,12 +6,11 @@ from ..core.utils.path import get_icon_path
 
 
 class SettingsManager:
-    """
-    Gestion centralisée des paramètres du plugin.
+    """Centralized management of the plugin's settings.
 
-    - Source unique de vérité
-    - Encapsulation de QgsSettings
-    - API typée et explicite
+    - Single source of truth
+    - Encapsulates QgsSettings
+    - Typed, explicit API
     """
 
     BASE_KEY = "secateur"

@@ -257,11 +257,11 @@ class SecateurPanel(QDockWidget):
             self._set_status("Paramètres mis à jour.", "info")
 
         except ValueError as e:
-            # erreurs métier (validation image)
+            # Business errors (image validation)
             self._set_status(str(e), "error")
 
         except Exception as e:
-            # erreurs inattendues (IO, filesystem, etc.)
+            # Unexpected errors (IO, filesystem, etc.)
             self._set_status(f"Erreur inattendue : {e}", "error")
 
     def _on_basemap_group_created(self) -> None:
