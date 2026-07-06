@@ -15,11 +15,20 @@ except ImportError:
 
 
 class PdfMerger:
+    """Merge multiple single-page PDF files into one output PDF."""
+
     @staticmethod
     def merge(
         pdf_paths: list[Path],
         output_path: Path,
     ) -> None:
+        """Merge *pdf_paths*, in order, into a single PDF at *output_path*.
+
+        Args:
+            pdf_paths: Paths of the source PDF files, in the order they
+                should appear in the merged document.
+            output_path: Path where the merged PDF is written.
+        """
         writer = PdfWriter()
 
         for pdf in pdf_paths:

@@ -25,6 +25,7 @@ class BasePdfLayout(ABC):
 
     @property
     def layout(self) -> QgsPrintLayout:
+        """The underlying ``QgsPrintLayout`` instance."""
         return self._layout
 
     @classmethod
@@ -35,7 +36,18 @@ class BasePdfLayout(ABC):
         project: QgsProject,
         template_path: Path,
         layout_name: str,
-    ) -> QgsPrintLayout: ...
+    ) -> QgsPrintLayout:
+        """Load *template_path* into *project* as a new layout named *layout_name*.
+
+        Args:
+            project: QGIS project the layout is added to.
+            template_path: Path to the ``.qpt`` template file to load.
+            layout_name: Name assigned to the created layout.
+
+        Returns:
+            The newly created ``QgsPrintLayout``.
+        """
+        ...
 
     def stabilize(self) -> None:
         """Stabilize the layout before export."""

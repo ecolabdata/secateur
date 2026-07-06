@@ -6,6 +6,8 @@ from .....utils.formatting import display_date_str
 
 @dataclass(slots=True)
 class LayoutMetadata:
+    """Metadata values (title, author, date, logo) applied to a PDF layout."""
+
     title: str
     author: str
     date_text: str

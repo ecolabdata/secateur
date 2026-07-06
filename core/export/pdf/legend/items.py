@@ -12,6 +12,8 @@ from ..common.layout.metadata_items import MetadataLayoutItems
 class LegendLayoutItems(
     MetadataLayoutItems,
 ):
+    """Layout items specific to a legend PDF page, plus shared metadata items."""
+
     legend: QgsLayoutItemLegend
 
     page_item: QgsLayoutItemLabel | None

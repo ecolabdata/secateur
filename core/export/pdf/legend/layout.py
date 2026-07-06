@@ -20,6 +20,8 @@ from .legend_tree import configure_legend
 
 
 class LegendLayout(BasePdfLayout):
+    """PDF layout for a single legend page."""
+
     def __init__(
         self,
         layout: QgsPrintLayout,
@@ -98,6 +100,12 @@ class LegendLayout(BasePdfLayout):
         project: QgsProject,
         layer_names: list[str],
     ) -> None:
+        """Build and apply the legend tree for *layer_names*.
+
+        Args:
+            project: QGIS project the layers belong to.
+            layer_names: Names of the layers to include in the legend.
+        """
         configure_legend(
             legend=self.items.legend,
             layout=self.layout,
@@ -116,6 +124,19 @@ class LegendLayout(BasePdfLayout):
         page_number: int,
         total_pages: int,
     ) -> "LegendLayout":
+        """Create, configure and populate a fully-ready legend layout.
+
+        Args:
+            project: QGIS project the layout is added to.
+            template_path: Path to the ``.qpt`` legend template.
+            metadata: Title/author/date/logo metadata to render.
+            layer_names: Names of the layers to include in the legend.
+            page_number: 1-based index of this page.
+            total_pages: Total number of legend pages.
+
+        Returns:
+            The created, configured, and stabilized ``LegendLayout``.
+        """
         layout = cls.create(
             project=project,
             template_path=template_path,
@@ -144,6 +165,13 @@ class LegendLayout(BasePdfLayout):
         page_number: int,
         total_pages: int,
     ) -> None:
+        """Render title/author/date/logo metadata and the page-number label.
+
+        Args:
+            metadata: Title/author/date/logo metadata to render.
+            page_number: 1-based index of this page.
+            total_pages: Total number of legend pages.
+        """
         # Render metadata using the centralized renderer
         MetadataRenderer.render(
             layout=self.layout,
