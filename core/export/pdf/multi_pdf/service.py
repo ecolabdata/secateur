@@ -65,7 +65,7 @@ class MultiPagePdfExportService(BasePdfExportService):
 
     @property
     def output_path(self) -> Path:
-        return Path(self.config.options.output_path)
+        return self.config.options.output_path
 
     @property
     def export_options(self) -> PdfExportOptions:
