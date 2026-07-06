@@ -99,11 +99,6 @@ def get_basemap_group(clear: bool = False) -> QgsLayerTreeGroup | None:
     return get_or_create_group([BASEMAP_GROUP_NAME], clear=clear, insert=-1)
 
 
-def filter_out_source(layers: list[QgsVectorLayer], source: QgsVectorLayer) -> list[QgsVectorLayer]:
-    """Return a new list of *layers* without the *source* layer."""
-    return [lyr for lyr in layers if lyr != source]
-
-
 def find_tree_layer(
     root: QgsLayerTreeGroup,
     layer: QgsMapLayer,

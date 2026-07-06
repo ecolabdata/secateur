@@ -79,10 +79,6 @@ class SecateurService:
     def __init__(self) -> None:
         self.settings = SettingsManager()
 
-    def get_available_raster_layers(self) -> list[QgsRasterLayer]:
-        """Get all raster layers available in the current project."""
-        return [lyr for lyr in QgsProject.instance().mapLayers().values() if isinstance(lyr, QgsRasterLayer)]
-
     # ──────────────────────────────────────────────
     #  Selection
     # ──────────────────────────────────────────────

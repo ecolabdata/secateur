@@ -1,4 +1,4 @@
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
@@ -479,11 +479,6 @@ class SecateurPanel(QDockWidget):
 
     def _finish_progress(self, text: str) -> None:
         self._set_status(text, "info")
-
-    def _cancel_feedback(self) -> None:
-        if self._feedback:
-            with suppress(Exception):
-                self._feedback.cancel()
 
     def _begin_busy_ui(self, message: str) -> None:
         self.run_button.setEnabled(False)
