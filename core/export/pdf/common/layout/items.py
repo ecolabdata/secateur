@@ -2,14 +2,10 @@
 Common layout items utilities for PDF export.
 """
 
-from typing import TypeVar
-
 from qgis.core import QgsLayout, QgsLayoutItem
 
-T = TypeVar("T", bound=QgsLayoutItem)
 
-
-def get_required_item(
+def get_required_item[T: QgsLayoutItem](
     layout: QgsLayout,
     item_id: str,
     expected_type: type[T],
@@ -23,7 +19,7 @@ def get_required_item(
     return item
 
 
-def get_optional_item(
+def get_optional_item[T: QgsLayoutItem](
     layout: QgsLayout,
     item_id: str,
     expected_type: type[T],

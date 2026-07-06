@@ -3,7 +3,6 @@ Exports functions for group handling, layer discovery and iteration.
 """
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TypeVar
 
 from qgis.core import (
     QgsLayerTreeGroup,
@@ -16,9 +15,6 @@ from qgis.core import (
 
 from ..constants import BASEMAP_GROUP_NAME, CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..logger import logger
-
-# Generic type for layer iteration (covariant)
-T = TypeVar("T", bound=QgsMapLayer, covariant=True)
 
 
 def _walk_group_path(
@@ -153,7 +149,7 @@ def find_layers(
     )
 
 
-def iterate_layers(
+def iterate_layers[T: QgsMapLayer](
     layers: Sequence[T],
     callback: Callable[[T], None],
     feedback: QgsProcessingFeedback | None = None,
