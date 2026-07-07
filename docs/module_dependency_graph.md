@@ -461,11 +461,12 @@ QgsProject QgsLayerTree QgsProcessing QgsLayout
 flowchart TB
 
 %% =========================
-%% UI
+%% Point d'entrée / UI
 %% =========================
 
 subgraph ENTRY["Point d'entrée QGIS"]
     PLUGIN["plugin.py<br/>Plugin"]
+    COMPAT["compat.py<br/>Qt5/Qt6 shim"]
 end
 
 subgraph UI
@@ -481,6 +482,7 @@ PANEL --> SERVICE
 PANEL --> SETTINGS_UI
 PANEL --> WIDGETS
 PANEL --> IMAGE_MGR
+PANEL --> COMPAT
 WIDGETS --> SETTINGS_UI
 WIDGETS --> IMAGE_MGR
 
@@ -495,12 +497,16 @@ LAYERS["utils/layers.py"]
 INTERSECTION["intersection_processing.py"]
 EXPORT["core/export"]
 CONSTANTS["constants.py"]
+LOGGER["core/logger.py"]
+LAYER_RESOLVER["layer_resolver.py"]
 
 end
 
 SERVICE --> LAYERS
 SERVICE --> INTERSECTION
-SERVICE --> EXPORT
+PANEL --> EXPORT
+PANEL --> LAYER_RESOLVER
+SERVICE --> LAYER_RESOLVER
 
 
 %% =========================
@@ -510,14 +516,14 @@ SERVICE --> EXPORT
 subgraph LAYERS_SYSTEM["Gestion des couches"]
 
 GROUPS["Groupes de couches"]
-VISIBILITY["visibility.py"]
-LAYER_RESOLVER["layer_resolver.py"]
+VISIBILITY["utils/visibility.py"]
 
 LAYERS --> GROUPS
-LAYERS --> VISIBILITY
-LAYERS --> LAYER_RESOLVER
 
 end
+
+VISIBILITY --> LAYERS
+SERVICE --> VISIBILITY
 
 
 %% =========================
@@ -526,17 +532,14 @@ end
 
 subgraph UTILS
 
-FEEDBACK["feedback.py"]
-FORMATTING["formatting.py"]
-PATH["path.py"]
-RENDERING["rendering.py"]
+FEEDBACK["utils/feedback.py"]
+FORMATTING["utils/formatting.py"]
+PATH["utils/path.py"]
+RENDERING["utils/rendering.py"]
 
 end
 
-LAYERS --> FEEDBACK
-LAYERS --> FORMATTING
-LAYERS --> PATH
-LAYERS --> RENDERING
+SETTINGS_UI --> PATH
 
 
 %% =========================
@@ -556,6 +559,7 @@ PROCESSING --> CONTEXT
 PROCESSING --> RESULTS
 PROCESSING --> METRICS
 PROCESSING --> PROFILE
+PROCESSING --> FEEDBACK
 
 CONTEXT --> METRICS
 
@@ -596,6 +600,8 @@ end
 
 EXPORT --> CSV
 EXPORT --> PDF
+CSV --> LAYERS
+CSV --> FORMATTING
 
 
 %% =========================
@@ -607,34 +613,58 @@ subgraph PDF_SYSTEM["Sous-système PDF"]
 MULTI["MultiPagePdf"]
 LEGEND["LegendPdf"]
 
-COMMON_EXPORT["common/export"]
-COMMON_LAYOUT["common/layout"]
-COMMON_MODELS["common/models"]
-COMMON_LIFECYCLE["common/lifecycle"]
+COMMON_LAYOUT["common/layout/"]
+COMMON_MODELS["common/models/"]
+COMMON_LIFECYCLE["common/lifecycle/"]
 
-BASE["BasePdfExportService"]
-
-COLLAB["Collaborators"]
+BASE["base_export_service.py<br/>BasePdfExportService"]
+CONFIG_FACTORY["base_export_config_factory.py<br/>ExportConfigFactory"]
+COLLAB["collaborators.py"]
 EXPORTER["PdfExporter"]
-MERGER["PdfMerger"]
+MERGER["pdf_merger.py<br/>PdfMerger"]
 FACTORY["LayoutFactory"]
+PDF_EXPORT["pdf_export.py"]
+PATH_RESOLVER["path_resolver.py"]
 
 MULTI --> BASE
 LEGEND --> BASE
+MULTI --> COLLAB
+LEGEND --> COLLAB
+MULTI --> CONFIG_FACTORY
+LEGEND --> CONFIG_FACTORY
+MULTI --> COMMON_LAYOUT
+LEGEND --> COMMON_LAYOUT
+MULTI --> COMMON_MODELS
+LEGEND --> COMMON_MODELS
 
 BASE --> COLLAB
-BASE --> COMMON_LAYOUT
 BASE --> COMMON_MODELS
-BASE --> COMMON_LIFECYCLE
 
 COLLAB --> FACTORY
 COLLAB --> EXPORTER
 COLLAB --> MERGER
+COLLAB --> COMMON_LIFECYCLE
+COLLAB --> COMMON_MODELS
+COLLAB --> PDF_EXPORT
+
+CONFIG_FACTORY --> PATH_RESOLVER
+
+COMMON_LAYOUT --> LOGGER
+COMMON_LAYOUT --> RENDERING
+COMMON_LAYOUT --> VISIBILITY
+COMMON_LAYOUT --> FEEDBACK
+
+PATH_RESOLVER --> FORMATTING
+COMMON_MODELS --> FORMATTING
 
 PDF --> MULTI
 PDF --> LEGEND
 
 end
+
+MULTI --> FEEDBACK
+MULTI --> FORMATTING
+LEGEND --> LOGGER
 
 
 %% =========================
@@ -648,8 +678,16 @@ QPT["Templates QPT"]
 
 end
 
-COMMON_LAYOUT --> TEMPLATE_LOADER
+LEGEND --> TEMPLATE_LOADER
+MULTI --> TEMPLATE_LOADER
 TEMPLATE_LOADER --> QPT
+
+
+%% =========================
+%% Widgets -> couches
+%% =========================
+
+WIDGETS --> LAYERS
 
 
 %% =========================
@@ -666,6 +704,7 @@ end
 LAYERS --> QGIS
 PROCESSING --> QGIS
 BASE --> QGIS
+COMPAT --> QGIS
 
 MERGER --> PYPDF
 
@@ -676,9 +715,11 @@ MERGER --> PYPDF
 
 FEEDBACK --> METRICS
 
-VISIBILITY --> LAYERS
-
 CONSTANTS -.-> LAYERS
 CONSTANTS -.-> SERVICE
-CONSTANTS -.-> EXPORT
+CONSTANTS -.-> PANEL
+CONSTANTS -.-> WIDGETS
+
+LOGGER -.-> LAYERS
+LOGGER -.-> PANEL
 ```
