@@ -65,6 +65,17 @@ def make_layer() -> Callable[..., QgsVectorLayer]:
     return _make_memory_layer
 
 
+@pytest.fixture(autouse=True)
+def _clean_qgis_project(qgis_new_project):
+    """Give every test a fresh QgsProject.
+
+    QgsProject.instance() is a process-wide singleton; without this, layers
+    and layer-tree groups added by one test (e.g. via addMapLayer) would
+    leak into the next test in the same session.
+    """
+    return qgis_new_project
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _initialize_processing(qgis_app):
     """Register QGIS Processing providers (native:*, gdal:*, ...).
@@ -73,6 +84,6 @@ def _initialize_processing(qgis_app):
     directly; a standalone QgsApplication (as set up by pytest-qgis) does
     not register the Processing providers by itself.
     """
-    from processing.core.Processing import Processing
+    from processing.core.Processing import Processing  # type: ignore
 
     Processing.initialize()

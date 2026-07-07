@@ -36,7 +36,7 @@ extraPaths = [".."]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-qgis_disable_gui = true
+qgis_gui_enabled = false
 # The plugin package uses relative imports throughout (e.g. `from ..core
 # import ...`), which only resolve when the code is imported as part of
 # the `secateur` package (as QGIS itself does when loading the plugin).
