@@ -26,8 +26,8 @@ reporting, formatting, filesystem paths, rendering/symbology).
 - **formatting.py** — timestamp/date string formatting for filenames and
   PDF display text, QGIS attribute value formatting, filename
   sanitization.
-- **path.py** — resource path helpers (`get_icon_path`) and a
-  `resolve_output_path` (see pitfall below).
+- **path.py** — resource path helper (`get_icon_path`) for locating
+  bundled plugin resources (e.g. the default logo).
 - **rendering.py** — renderer/symbol introspection (`is_simple_fill`,
   `set_layer_opacity`) used by the PDF export visibility styling step.
 
@@ -57,14 +57,6 @@ all import from here directly.
 
 ## Common pitfalls
 
-- **`path.py::resolve_output_path(output_path: str) -> tuple[str, str]`
-  is dead code with zero callers anywhere in the repo.** It predates, and
-  is unrelated to, the actively-used
-  `core/export/pdf/common/path_resolver.py::resolve_output_path(...)`
-  (different signature, `Path`-based, used by the PDF export config
-  factory). The two are easy to confuse by name alone — check the import
-  path, not just the function name, when searching for "the" output-path
-  resolver.
 - `feedback.py` importing from `core/intersection/intersection_metrics.py`
   is a known cross-package coupling (utils depending on the intersection
   engine); it's documented, not accidental, but be aware of it if you're

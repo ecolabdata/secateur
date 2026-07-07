@@ -75,7 +75,3 @@ this level, the only directly-imported symbols from outside `core/` are:
   (e.g. `ImageManager.normalize_image`) are intentionally kept for planned
   features. Verify call sites across the *whole* repo before removing
   anything, and when in doubt, ask rather than delete.
-- `core/utils/path.py::resolve_output_path` and
-  `core/export/pdf/common/path_resolver.py::resolve_output_path` are two
-  unrelated functions with the same name and different signatures — don't
-  confuse them when searching/importing.

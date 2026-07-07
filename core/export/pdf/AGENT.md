@@ -45,9 +45,7 @@ PDF export/merging, or layout-lifecycle cleanup.
   - `template_loader.py::create_layout_from_template` — loads a `.qpt`
     file into a `QgsPrintLayout`.
   - `path_resolver.py` — resolves the final output path (timestamped if a
-    directory was given) and the bundled template path. **Not** the same
-    function as `core/utils/path.py::resolve_output_path` — see
-    `core/AGENT.md` pitfalls.
+    directory was given) and the bundled template path.
   - `pdf_export.py::export_layout_to_pdf` — the actual
     `QgsLayoutExporter` call, plus output-path validation and a
     write-permission probe.
@@ -129,19 +127,7 @@ abstract template-method bases in `common/`), and their concrete pairs
 
 ## Common pitfalls
 
-- `template_loader.py::create_layout_from_template` computes
-  `manager = project.layoutManager()` unconditionally near the top of the
-  function (with a comment claiming it's "retained for potential manager
-  registration later"), but that value is never read — it gets
-  recomputed via the same call a few lines later, inside the
-  `if register_in_manager:` branch, before use. The first assignment is
-  effectively dead; don't assume it does something because of the
-  comment.
-- `pdf_export.py::export_layout_to_pdf`'s write-permission probe creates
-  a file named `.__kilo_write_test` — an odd, tool-generated-looking
-  name unrelated to this project. Harmless (deleted immediately after
-  the check) but worth renaming to something project-namespaced
-  (e.g. `.secateur_write_test`) if you're touching this function anyway.
 - `PdfExportOptions.page_size` is defined but not read anywhere in the
   export pipeline (page size is presumably driven by the `.qpt` template
-  instead) — don't assume setting it changes the output.
+  instead) — don't assume setting it changes the output. Kept as-is for
+  now (planned future use), not removed.
