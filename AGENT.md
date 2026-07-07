@@ -31,10 +31,6 @@ everything else to [core/](core/AGENT.md) and [ui/](ui/AGENT.md).
   (QGIS 4.x), e.g. `RichText`. It was added specifically to fix a crash on
   QGIS 4. Do not remove it or "clean it up" as dead compatibility code —
   add new aliases here as needed instead of hardcoding a Qt version.
-- `metadata.txt`'s `repository`/`homepage` fields still point at
-  `github.com/abulte/secateur` (an earlier fork/location) while
-  `tracker` correctly points at `github.com/ecolabdata/secateur`, the
-  current origin. Worth fixing but out of this cleanup pass's scope.
 
 ## Coding conventions specific to this module
 

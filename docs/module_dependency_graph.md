@@ -35,12 +35,13 @@ Lecture :
  │  Intersection   │   │     Export      │
  │     Engine      │   │     Engine      │
  └─────────────────┘   └─────────────────┘
+```
 
 
-══════════════════════════════════════════════════════════════
-1. Gestion des couches et visibilité
-══════════════════════════════════════════════════════════════
+## 1. Gestion des couches et visibilité
 
+
+```text
 core/utils/layers.py
 │
 ├── find_group()
@@ -55,8 +56,9 @@ core/utils/layers.py
 │
 ▼
 QGIS LayerTree API
+```
 
-
+```text
 core/utils/visibility.py
 │
 ├── clear_all_visibility()
@@ -64,12 +66,13 @@ core/utils/visibility.py
 ├── set_layer_and_parents_visible()
 │
 └──────────────► layers.py
+```
 
 
-══════════════════════════════════════════════════════════════
-2. Moteur d'intersection
-══════════════════════════════════════════════════════════════
+## 2. Moteur d'intersection
 
+
+```text
 core/intersection/intersection_processing.py
 │
 ├── prepare_layers()
@@ -100,23 +103,24 @@ core/intersection/intersection_processing.py
                    ├── native:reprojectlayer
                    ├── native:fixgeometries
                    └── gdal:warpreproject
+```
 
 
-══════════════════════════════════════════════════════════════
-3. Export CSV
-══════════════════════════════════════════════════════════════
+## 3. Export CSV
 
+
+```text
 csv/export.py
 │
 ├────────────► utils.layers
 ├────────────► utils.formatting
 │
 └────────────► QApplication
+```
 
 
-══════════════════════════════════════════════════════════════
-4. Export PDF
-══════════════════════════════════════════════════════════════
+## 4. Export PDF
+
 
 ```text
 pdf
@@ -222,9 +226,8 @@ common
        └── pdf_export_options.py
 ```
 
-══════════════════════════════════════════════════════════════
-5. Infrastructure transverse
-══════════════════════════════════════════════════════════════
+## 5. Infrastructure transverse
+
 
 core/constants.py
 
@@ -308,9 +311,9 @@ ui/widgets/settings_dialog.py
 Aucune dépendance vers le reste de `core/` ; dépend uniquement de
 `qgis.core`/`qgis.PyQt`.
 
-══════════════════════════════════════════════════════════════
-5bis. Couche UI (paramètres et widgets)
-══════════════════════════════════════════════════════════════
+
+## 5bis. Couche UI (paramètres et widgets)
+
 
 ```text
 ui/panel.py (SecateurPanel)
@@ -332,9 +335,9 @@ ui/panel.py (SecateurPanel)
 auteur, titre PDF, logo, inclusion des couches raster) et ne dépend que de
 `core/utils/path.py` (`get_icon_path`).
 
-══════════════════════════════════════════════════════════════
-6. Runtime QGIS
-══════════════════════════════════════════════════════════════
+
+## 6. Runtime QGIS
+
 
 Contrairement à une architecture strictement en couches,
 plusieurs modules utilisent directement QgsProject.instance().
@@ -356,9 +359,9 @@ Le runtime QGIS constitue donc un centre de dépendance réel.
          Intersection  Export   Utils
 ```
 
-══════════════════════════════════════════════════════════════
-7. Dépendances externes
-══════════════════════════════════════════════════════════════
+
+## 7. Dépendances externes
+
 
 ```text
 Application
@@ -379,9 +382,9 @@ Application
 
 ---
 
-══════════════════════════════════════════════════════════════
-8. Vue condensée
-══════════════════════════════════════════════════════════════
+
+## 8. Vue condensée
+
 
 ```text
 SecateurPanel
@@ -679,94 +682,3 @@ CONSTANTS -.-> LAYERS
 CONSTANTS -.-> SERVICE
 CONSTANTS -.-> EXPORT
 ```
-
----
-
-# Incohérences architecturales identifiées
-
-Ces points ne remettent pas en cause le fonctionnement actuel du plugin.
-Ils sont documentés ici — sans être corrigés dans cette passe de nettoyage
-— pour informer de futures décisions de conception.
-
-## 1. `SecateurPanel` concentre trop de responsabilités
-
-**Constat** : `ui/panel.py` construit l'intégralité de l'UI, orchestre les
-appels à `SecateurService`, `SettingsManager`, `ImageManager`,
-`BasemapComboBox` et `SettingsDialog`, et centralise l'affichage de statut
-(`_set_status`). C'est à la fois le plus gros fichier de `ui/` et celui
-avec le plus de dépendances directes.
-
-**Impact** : toute évolution de la persistance des paramètres, de la
-gestion des logos ou du choix de fond de carte passe nécessairement par ce
-fichier, ce qui le rend plus difficile à faire évoluer isolément et plus
-coûteux à tester (aucune suite de tests ne couvre `ui/panel.py`
-actuellement).
-
-**Piste future** : extraire la logique de câblage des paramètres/logo
-(actuellement dans `_open_settings_dialog` et les callbacks associés) dans
-un petit contrôleur dédié, pour ne laisser à `SecateurPanel` que la
-construction des widgets et la délégation aux services.
-
-## 2. Couplage transversal `utils/feedback.py` → `intersection/intersection_metrics.py`
-
-**Constat** : `core/utils/feedback.py` importe
-`intersection.intersection_metrics.LayerMetrics`, alors que `utils/` est
-censé regrouper des utilitaires indépendants du domaine métier (voir
-[core/utils/AGENT.md](../core/utils/AGENT.md)).
-
-**Impact** : `utils/` n'est pas totalement réutilisable indépendamment du
-moteur d'intersection — un contributeur qui voudrait extraire `utils/`
-comme bibliothèque autonome buterait sur cette dépendance.
-
-**Piste future** : soit déplacer `report_layer_metrics()`/
-`update_feedback()` dans `core/intersection/` (leur usage est
-essentiellement lié à l'intersection), soit leur faire accepter des
-valeurs primitives plutôt que le dataclass `LayerMetrics`.
-
-## 3. Boilerplate dupliqué entre `LegendExportService` et `MultiPagePdfExportService`
-
-**Constat** : les deux services PDF implémentent chacun, à l'identique,
-les propriétés `output_path`/`export_options` exigées par le contrat
-abstrait de `BasePdfExportService` (voir
-[core/export/pdf/AGENT.md](../core/export/pdf/AGENT.md)).
-
-**Impact** : mineur (quelques lignes), mais toute évolution de ce contrat
-devra être répercutée à deux endroits.
-
-**Piste future** : faire porter `config` par `BasePdfExportService.__init__`
-(via un protocole `HasOptions`) pour fournir ces propriétés par défaut.
-
-## 4. Ambiguïté de rattachement de `SecateurService`
-
-**Constat** : `SecateurService` vit dans `ui/` alors que sa propre
-docstring précise qu'il ne contient « NO UI (Qt) dependency » — c'est en
-réalité un service métier pur, orchestrant `core/intersection/` et
-`core/export/`.
-
-**Impact** : un contributeur cherchant la logique métier du plugin dans
-`core/` ne la trouvera pas immédiatement ; le nom générique
-« SecateurService » suggère un rôle plus central que sa position dans
-`ui/` ne le laisse penser.
-
-**Piste future** : déplacer `SecateurService` (et ses value objects
-`SelectionResult`/`ProcessResult`) dans `core/`, en ne laissant dans
-`ui/service.py` que ce qui reste réellement UI-adjacent, si l'équipe
-souhaite renforcer la frontière `core/`/`ui/`.
-
-## 5. Accès à `QgsProject.instance()` non uniformisé
-
-**Constat** : certains modules reçoivent leurs dépendances QGIS en
-paramètre (ex. `ui/service.py::run(selected_layer_id, feedback)`), d'autres
-appellent directement `QgsProject.instance()` en interne
-(`utils/layers.py`, `intersection_context.py`, `intersection_processing.py`,
-`template_loader.py`, les services PDF). Les deux approches coexistent
-sans règle explicite.
-
-**Impact** : limité en pratique (documenté comme un choix architectural
-délibéré, pas un oubli — voir [core/AGENT.md](../core/AGENT.md)), mais
-un nouveau contributeur pourrait raisonnablement s'attendre à une
-injection systématique et être surpris par les appels directs.
-
-**Piste future** : si une couche de test/mock plus poussée est envisagée,
-uniformiser vers l'injection explicite du projet QGIS partout où c'est
-raisonnable.

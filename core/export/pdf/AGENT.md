@@ -56,7 +56,7 @@ PDF export/merging, or layout-lifecycle cleanup.
   which estimate a "cost" per layer from its renderer to decide how many
   layers fit per page) and merges them.
 - **multi_pdf/** — cartographic report PDF: `MultiPagePdfExportService`
-  builds one overview page (all result layers) plus one detail page per
+  builds one overview page (source layer and basemap) plus one detail page per
   additional result layer (via `MultiPageLayoutFactory` /
   `MultiPagePageBuilder` / `MultiPdfLayout`) and merges them.
 
