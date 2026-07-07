@@ -10,6 +10,8 @@ dev = [
  "pre-commit",
  "qgis-stubs",
  "pyqt5-stubs>=5.15.6.0",
+ "pytest",
+ "pytest-qgis>=2.0.0",
 ]
 
 [tool.ruff]
@@ -27,3 +29,19 @@ stubPath = "stubs"
 # stub-only packages (qgis, PyQt5) have no source — this is expected
 reportMissingModuleSource = false
 ignore = ["**/__pycache__"]
+# Mirrors [tool.pytest.ini_options].pythonpath: tests import the plugin
+# as `secateur.xxx` (see pytest config below for why), which requires the
+# parent directory to be on the module search path.
+extraPaths = [".."]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qgis_disable_gui = true
+# The plugin package uses relative imports throughout (e.g. `from ..core
+# import ...`), which only resolve when the code is imported as part of
+# the `secateur` package (as QGIS itself does when loading the plugin).
+# Adding the parent directory to sys.path lets tests do
+# `from secateur.core... import ...` instead of importing submodules as
+# bare top-level modules, which is what the previous placeholder test
+# suite ran into ("cannot import due to relative import issues").
+pythonpath = [".."]

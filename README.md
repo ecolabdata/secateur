@@ -1083,18 +1083,44 @@ uv run pyright
 
 # Tests
 
+La suite de tests s'exécute avec [pytest](https://pytest.org) et
+[pytest-qgis](https://github.com/GispoCoding/pytest-qgis), qui pilote une
+vraie installation QGIS (≥ 3.34) plutôt que des mocks : les tests
+créent de vraies couches en mémoire, exécutent la vraie intersection
+spatiale (`native:extractbylocation`, etc.) et produisent de vrais
+fichiers CSV/PDF dans un répertoire temporaire.
+
+## Mise en place (une fois)
+
+`qgis`/`qgis.PyQt` ne s'installent pas via pip : ils viennent de
+l'installation QGIS elle-même. Le venv doit donc être créé avec accès aux
+paquets système, en utilisant **le même interpréteur Python que QGIS** :
+
 ```bash
-uv run python -m unittest tests.test_service
+uv venv --system-site-packages
+uv sync
+```
+
+Sur Windows, voir [qgis-venv-creator](https://github.com/GispoCoding/qgis-venv-creator)
+pour relier correctement le venv à l'environnement Python de QGIS.
+
+## Exécution
+
+```bash
+uv run pytest
 ```
 
 > [!NOTE]
-> `tests/test_service.py` couvre actuellement des contrats conceptuels
-> (niveaux de statut, invariants attendus) en `unittest`, sans importer les
-> modules réels du plugin — l'import direct de `SecateurService` échoue
-> hors d'un environnement QGIS. Il n'y a pas de couverture automatisée du
-> pipeline d'intersection ni des exports PDF/CSV à ce jour. Testez
-> manuellement dans QGIS (sélection → intersection → export CSV/PDF) avant
-> de merger un changement qui touche à `core/` ou `ui/`.
+> `tests/test_compat.py` ne peut vérifier que la branche Qt5 de
+> `compat.py` sur un poste QGIS 3.34 — la branche Qt6/QGIS4 est marquée
+> `skip` (pas silencieusement ignorée) faute d'installation QGIS 4 pour la
+> vérifier réellement.
+>
+> `ui/panel.py` et `ui/widgets/` (interactions widgets/dialogues) ne sont
+> pas encore couverts par cette suite — voir
+> [core/AGENT.md](core/AGENT.md) et [ui/AGENT.md](ui/AGENT.md) pour l'état
+> de la couverture par module. Testez manuellement dans QGIS avant de
+> merger un changement touchant à ces fichiers.
 
 
 
