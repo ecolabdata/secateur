@@ -1110,6 +1110,8 @@ pour relier correctement le venv à l'environnement Python de QGIS.
 uv run pytest
 ```
 
+Détail de ce que couvre chaque fichier de test : [tests/README.md](tests/README.md).
+
 > [!NOTE]
 > `tests/test_compat.py` ne peut vérifier que la branche Qt5 de
 > `compat.py` sur un poste QGIS 3.34 — la branche Qt6/QGIS4 est marquée
