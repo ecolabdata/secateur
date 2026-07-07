@@ -11,6 +11,12 @@ Lecture :
 
 ```text
 ┌──────────────────────────────────────────┐
+│            QGIS PLUGIN ENTRY             │
+│    __init__.py / plugin.py (Plugin)      │
+└──────────────────────────────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────┐
 │                  UI                      │
 │             ui/panel.py                  │
 │            (SecateurPanel)               │
@@ -248,8 +254,9 @@ Utilisé par :
 
 ```text
 utils/layers.py
-legend/pagination.py
-utils/path.py
+export/pdf/legend/pagination.py
+export/pdf/common/layout/visibility.py
+ui/panel.py
 ...
 ```
 
@@ -279,6 +286,51 @@ utils.feedback
    ▼
 intersection_metrics
 ```
+
+---
+
+core/image_manager.py (ImageManager)
+
+```text
+validate_image()
+normalize_image()
+copy_to_local()
+safe_import_logo()
+```
+
+Utilisé par :
+
+```text
+ui/panel.py
+ui/widgets/settings_dialog.py
+```
+
+Aucune dépendance vers le reste de `core/` ; dépend uniquement de
+`qgis.core`/`qgis.PyQt`.
+
+══════════════════════════════════════════════════════════════
+5bis. Couche UI (paramètres et widgets)
+══════════════════════════════════════════════════════════════
+
+```text
+ui/panel.py (SecateurPanel)
+│
+├────────► ui/service.py (SecateurService)
+├────────► ui/settings.py (SettingsManager)
+├────────► core/image_manager.py (ImageManager)
+└────────► ui/widgets/
+             │
+             ├── basemap_combo.py (BasemapComboBox)
+             │      └────────► core/utils/layers.py
+             │                 (find_group, get_basemap_group)
+             └── settings_dialog.py (SettingsDialog)
+                    ├────────► ui/settings.py
+                    └────────► core/image_manager.py
+```
+
+`ui/settings.py` encapsule `QgsSettings` (persistance des préférences :
+auteur, titre PDF, logo, inclusion des couches raster) et ne dépend que de
+`core/utils/path.py` (`get_icon_path`).
 
 ══════════════════════════════════════════════════════════════
 6. Runtime QGIS
@@ -394,6 +446,9 @@ QgsProject QgsLayerTree QgsProcessing QgsLayout
 * `constants.py` est principalement utilisé par les utilitaires manipulant les groupes de couches QGIS.
 * `QgsProject` et plus généralement le runtime QGIS (`QgsProject`, `QgsLayerTree`, `QgsProcessing`, `QgsLayout`) constituent le principal centre de dépendance de l'application.
 * L'architecture présente une séparation des responsabilités plus marquée qu'auparavant, notamment grâce à la factorisation du sous-système PDF autour de composants communs réutilisables.
+* `core/image_manager.py` (`ImageManager`) est une feuille indépendante : aucune dépendance vers le reste de `core/`, utilisée uniquement par la couche UI (`ui/panel.py`, `ui/widgets/settings_dialog.py`).
+* `ui/panel.py` (`SecateurPanel`) concentre désormais un nombre croissant de dépendances directes (`SecateurService`, `SettingsManager`, `ImageManager`, les deux widgets) — voir la section « incohérences architecturales » du dépôt pour une discussion de cette responsabilité étendue.
+* Aucune dépendance circulaire n'a été identifiée dans le graphe actuel ; à revalider si de nouveaux couplages transversaux sont introduits (voir `feedback.py` → `intersection_metrics.py` ci-dessus, qui reste unidirectionnel).
 
 ---
 
@@ -406,12 +461,25 @@ flowchart TB
 %% UI
 %% =========================
 
+subgraph ENTRY["Point d'entrée QGIS"]
+    PLUGIN["plugin.py<br/>Plugin"]
+end
+
 subgraph UI
     PANEL["ui/panel.py<br/>SecateurPanel"]
     SERVICE["ui/service.py<br/>SecateurService"]
+    SETTINGS_UI["ui/settings.py<br/>SettingsManager"]
+    WIDGETS["ui/widgets/<br/>BasemapComboBox, SettingsDialog"]
+    IMAGE_MGR["core/image_manager.py<br/>ImageManager"]
 end
 
+PLUGIN --> PANEL
 PANEL --> SERVICE
+PANEL --> SETTINGS_UI
+PANEL --> WIDGETS
+PANEL --> IMAGE_MGR
+WIDGETS --> SETTINGS_UI
+WIDGETS --> IMAGE_MGR
 
 
 %% =========================
