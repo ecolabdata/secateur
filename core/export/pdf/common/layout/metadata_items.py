@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class MetadataLayoutItems:
+    """Bundle of the optional metadata layout items shared by all PDF layouts."""
+
     title_item: QgsLayoutItemLabel | None
     author_item: QgsLayoutItemLabel | None
     date_item: QgsLayoutItemLabel | None

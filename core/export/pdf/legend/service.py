@@ -88,8 +88,10 @@ class LegendExportService(BasePdfExportService):
 
     @property
     def output_path(self) -> Path:
+        """Path where the merged legend PDF will be written."""
         return self.config.options.output_path
 
     @property
     def export_options(self):
+        """Export options (dpi, page size, ...) shared by all legend pages."""
         return self.config.options

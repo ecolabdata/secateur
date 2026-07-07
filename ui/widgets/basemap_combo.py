@@ -26,6 +26,7 @@ class BasemapComboBox(QComboBox):
         self.addItem(self.EMPTY_TEXT, None)
 
     def showPopup(self) -> None:
+        """Refresh the layer list from the basemap group before showing the popup."""
         self._reload()
         super().showPopup()
 

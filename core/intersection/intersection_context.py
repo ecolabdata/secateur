@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
 from qgis.core import (
-    # existing imports
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,
@@ -15,9 +14,7 @@ from .intersection_metrics import IntersectionMetrics
 
 @dataclass(slots=True)
 class IntersectionExecutionContext:
-    """
-    Données calculées une seule fois pour toute l'analyse.
-    """
+    """Data computed once for the whole analysis."""
 
     source_crs: QgsCoordinateReferenceSystem
     source_extent: QgsRectangle
@@ -36,6 +33,15 @@ def get_source_extent_in_crs(
     context: IntersectionExecutionContext,
     target_crs: QgsCoordinateReferenceSystem,
 ) -> QgsRectangle:
+    """Return the source extent reprojected to *target_crs*, using the cache.
+
+    Args:
+        context: Execution context holding the source extent and caches.
+        target_crs: CRS to reproject the source extent to.
+
+    Returns:
+        The source extent in *target_crs*.
+    """
     if target_crs == context.source_crs:
         return context.source_extent
 
@@ -63,10 +69,7 @@ def build_intersection_context(
     *,
     include_raster: bool = False,
 ) -> IntersectionExecutionContext:
-    """
-    Construit toutes les informations réutilisables liées
-    à la couche source.
-    """
+    """Build all the reusable information related to the source layer."""
 
     return IntersectionExecutionContext(
         source_crs=source_layer.crs(),
@@ -77,6 +80,8 @@ def build_intersection_context(
 
 @dataclass(slots=True)
 class TransformCache:
+    """Cache of ``QgsCoordinateTransform`` instances keyed by CRS pair."""
+
     _cache: dict[
         tuple[str, str],
         QgsCoordinateTransform,
@@ -87,6 +92,7 @@ class TransformCache:
         source_crs: QgsCoordinateReferenceSystem,
         target_crs: QgsCoordinateReferenceSystem,
     ) -> QgsCoordinateTransform:
+        """Return the cached transform for (*source_crs*, *target_crs*), creating it if needed."""
         key = (
             source_crs.authid(),
             target_crs.authid(),
@@ -110,9 +116,7 @@ def may_intersect_source(
     context: IntersectionExecutionContext,
     layer: QgsVectorLayer | QgsRasterLayer,
 ) -> bool:
-    """
-    Test rapide d'intersection d'emprises.
-    """
+    """Quick bounding-box intersection test."""
 
     candidate_extent = layer.extent()
 
@@ -133,4 +137,5 @@ def filter_layers_by_extent(
     context: IntersectionExecutionContext,
     layers: list[QgsVectorLayer | QgsRasterLayer],
 ) -> list[QgsVectorLayer | QgsRasterLayer]:
+    """Return the subset of *layers* whose extent may intersect the source layer."""
     return [layer for layer in layers if may_intersect_source(context, layer)]

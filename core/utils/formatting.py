@@ -20,8 +20,11 @@ def timestamp_str() -> str:
 
 
 def display_date_str() -> str:
-    """Renvoie la date courante au format « dd/mm/YYYY » utilisé dans les
-    layouts (legende et pdf multipage)."""
+    """Return the current date formatted as ``dd/mm/YYYY``.
+
+    This is the display format used in the legend and multi-page PDF
+    layouts; keep it in sync with the templates in ``core/export/pdf``.
+    """
     return datetime.now().strftime("%d/%m/%Y")
 
 

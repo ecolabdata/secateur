@@ -6,12 +6,11 @@ from ..core.utils.path import get_icon_path
 
 
 class SettingsManager:
-    """
-    Gestion centralisée des paramètres du plugin.
+    """Centralized management of the plugin's settings.
 
-    - Source unique de vérité
-    - Encapsulation de QgsSettings
-    - API typée et explicite
+    - Single source of truth
+    - Encapsulates QgsSettings
+    - Typed, explicit API
     """
 
     BASE_KEY = "secateur"
@@ -23,6 +22,7 @@ class SettingsManager:
     # ~~~~~~~~~~~~~~~ raster ~~~~~~~~~~~~~~~#
     @property
     def include_raster(self) -> bool:
+        """Whether raster layers are included as intersection candidates."""
         raw = self._settings.value(
             f"{self.BASE_KEY}/include_raster",
             False,
@@ -41,10 +41,16 @@ class SettingsManager:
     # ~~~~~~~~~~~~~~~ author ~~~~~~~~~~~~~~~#
     @property
     def author(self) -> str:
+        """Author name written on exported PDFs, defaulting to ``"DDT"``."""
         return self._settings.value(f"{self.BASE_KEY}/author", "DDT")
 
     @author.setter
     def author(self, value: str) -> None:
+        """Set the author name.
+
+        Raises:
+            ValueError: If *value* is empty or blank.
+        """
         if not value or not value.strip():
             raise ValueError("L'autheur ne peut pas être vide")
         self._settings.setValue(f"{self.BASE_KEY}/author", value.strip())
@@ -52,10 +58,16 @@ class SettingsManager:
     # ~~~~~~~~~~~~~ pdf title ~~~~~~~~~~~~~~#
     @property
     def pdf_title(self) -> str:
+        """Document title written on exported PDFs, defaulting to ``"Rapport"``."""
         return self._settings.value(f"{self.BASE_KEY}/pdf_title", "Rapport")
 
     @pdf_title.setter
     def pdf_title(self, value: str) -> None:
+        """Set the PDF title.
+
+        Raises:
+            ValueError: If *value* is empty or blank.
+        """
         if not value or not value.strip():
             raise ValueError("Le titre ne peut pas être vide")
         self._settings.setValue(f"{self.BASE_KEY}/pdf_title", value.strip())
@@ -63,6 +75,13 @@ class SettingsManager:
     # ~~~~~~~~~~~~~~~ logo ~~~~~~~~~~~~~~~~#
     @property
     def logo_path(self) -> str:
+        """Path to the logo image, falling back to the plugin's default icon.
+
+        Raises:
+            FileNotFoundError: If a stored custom logo path no longer exists.
+            ValueError: If falling back to the default icon and it cannot
+                be found among the plugin's resources.
+        """
         path = self._settings.value(f"{self.BASE_KEY}/logo_path", "")
         if path:
             if not os.path.exists(path):

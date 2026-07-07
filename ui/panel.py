@@ -1,4 +1,4 @@
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
@@ -34,8 +34,15 @@ from .widgets.settings_dialog import SettingsDialog
 
 @runtime_checkable
 class QgisInterfaceProtocol(Protocol):
-    def mainWindow(self) -> QWidget: ...
-    def activeLayer(self) -> Any: ...
+    """Subset of QGIS's ``iface`` used by the panel, for typing and testability."""
+
+    def mainWindow(self) -> QWidget:
+        """Return the QGIS main window, used as the panel's parent widget."""
+        ...
+
+    def activeLayer(self) -> Any:
+        """Return the currently active map layer, or ``None``."""
+        ...
 
 
 @contextmanager
@@ -74,6 +81,8 @@ class _SecateurState:
 
 
 class SecateurPanel(QDockWidget):
+    """Dockable panel driving the plugin's selection/intersection/export workflow."""
+
     def __init__(self, iface: QgisInterfaceProtocol, parent: QWidget | None = None) -> None:
         super().__init__("Sécateur", parent or iface.mainWindow())
         self.iface = iface
@@ -257,11 +266,11 @@ class SecateurPanel(QDockWidget):
             self._set_status("Paramètres mis à jour.", "info")
 
         except ValueError as e:
-            # erreurs métier (validation image)
+            # Business errors (image validation)
             self._set_status(str(e), "error")
 
         except Exception as e:
-            # erreurs inattendues (IO, filesystem, etc.)
+            # Unexpected errors (IO, filesystem, etc.)
             self._set_status(f"Erreur inattendue : {e}", "error")
 
     def _on_basemap_group_created(self) -> None:
@@ -479,11 +488,6 @@ class SecateurPanel(QDockWidget):
 
     def _finish_progress(self, text: str) -> None:
         self._set_status(text, "info")
-
-    def _cancel_feedback(self) -> None:
-        if self._feedback:
-            with suppress(Exception):
-                self._feedback.cancel()
 
     def _begin_busy_ui(self, message: str) -> None:
         self.run_button.setEnabled(False)

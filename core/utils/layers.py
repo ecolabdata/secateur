@@ -3,7 +3,6 @@ Exports functions for group handling, layer discovery and iteration.
 """
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TypeVar
 
 from qgis.core import (
     QgsLayerTreeGroup,
@@ -16,9 +15,6 @@ from qgis.core import (
 
 from ..constants import BASEMAP_GROUP_NAME, CREATED_OBJECTS_GROUP_NAME, RESULT_GROUP_NAME
 from ..logger import logger
-
-# Generic type for layer iteration (covariant)
-T = TypeVar("T", bound=QgsMapLayer, covariant=True)
 
 
 def _walk_group_path(
@@ -99,15 +95,11 @@ def get_basemap_group(clear: bool = False) -> QgsLayerTreeGroup | None:
     return get_or_create_group([BASEMAP_GROUP_NAME], clear=clear, insert=-1)
 
 
-def filter_out_source(layers: list[QgsVectorLayer], source: QgsVectorLayer) -> list[QgsVectorLayer]:
-    """Return a new list of *layers* without the *source* layer."""
-    return [lyr for lyr in layers if lyr != source]
-
-
 def find_tree_layer(
     root: QgsLayerTreeGroup,
     layer: QgsMapLayer,
 ):
+    """Return the ``QgsLayerTreeLayer`` node for *layer* under *root*, if any."""
     return root.findLayer(layer.id())
 
 
@@ -116,6 +108,16 @@ def iter_visible_layers(
     exclude: QgsMapLayer | None = None,
     allowed_types: tuple[type[QgsMapLayer], ...] = (QgsVectorLayer,),
 ) -> Iterator[QgsMapLayer]:
+    """Yield visible layers of *allowed_types* under *group*, recursively.
+
+    Args:
+        group: Layer tree group to walk.
+        exclude: Optional layer to skip even if visible.
+        allowed_types: Layer classes to include; others are skipped.
+
+    Yields:
+        Visible layers matching *allowed_types*, depth-first.
+    """
     for child in group.children():
         if isinstance(child, QgsLayerTreeGroup):
             if child.isVisible():
@@ -158,7 +160,7 @@ def find_layers(
     )
 
 
-def iterate_layers(
+def iterate_layers[T: QgsMapLayer](
     layers: Sequence[T],
     callback: Callable[[T], None],
     feedback: QgsProcessingFeedback | None = None,

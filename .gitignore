@@ -155,6 +155,9 @@ env/
 venv/
 ENV/
 env.bak/
+
+# pytest-qgis isolated QGIS profile, generated when running the test suite
+.qgis-settings/
 venv.bak/
 
 # Spyder project settings

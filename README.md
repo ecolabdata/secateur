@@ -77,7 +77,9 @@ Plugin QGIS d'intersection spatiale automatique pour l'analyse territoriale et l
    - [Rechargement rapide](#rechargement-rapide)
    - [Installation environnement](#installation-environnement)
    - [Qualité de code](#qualité-de-code)
+   - [Tests](#tests)
    - [Packaging](#packaging)
+   - [Contribuer](#contribuer)
 11. [🧯 Dépannage](#dépannage)
 12. [Limitations connues](#limitations-connues)
 13. [🙏 Remerciements](#remerciements)
@@ -144,7 +146,7 @@ Les problématiques métier d'origine sont détaillées dans la notice DDT21 du 
 
 ## Gestion automatique des groupes QGIS
 
-Le plugin crée automatiquement un groupe résultat : `Résultats secateur` et `Objets cible` afin d'organiser les données temporaires.
+Le plugin crée automatiquement un groupe résultat : `Résultats secateur` et `Objet cible` afin d'organiser les données temporaires.
 
 
 ## Export CSV
@@ -388,53 +390,17 @@ D --> F[Export PDF]
 
 ### Le PDF
 
-Aujourd'hui, le plugin produit des PDF multicouches pour une lecture et diffusion rapide.
+Le plugin produit des PDF multicouches pour une lecture et diffusion rapide.
 
-Historiquement, il produit aussi un GeoPDF ajourd'hui supprimé. Néanmoins, il existe encore dans une branche archivée du projet : https://github.com/ecolabdata/secateur/tree/archive/geopdf-export
-
-Contrairement à un PDF classique, un GeoPDF permet :
-
-- l'affichage de couches ;
-- l'activation/désactivation des calques ;
-- le zoom ;
-- la navigation cartographique ;
-- la consultation des attributs.
-
-Le document est lisible dans :
-
-**Sur Windows :**
-[Adobe acrobat reader](https://get.adobe.com/fr/reader/)
-
-**Sur Unix :**
-Obtenir [Evince](https://en.wikipedia.org/wiki/Evince) :
-```
-sudo apt-get install evince
-```
-
-
-
-#### Intérêt du GeoPDF
-
-Dans les contextes réglementaires, de nombreux zonages se superposent :
-
-- SUP ;
-- risques ;
-- urbanisme ;
-- environnement ;
-- réseaux ;
-- biodiversité.
-
-Le GeoPDF permet alors :
-
-- de masquer certaines couches ;
-- d'analyser les intersections individuellement ;
-- de conserver une lecture exploitable.
-
-La logique est similaire à celle d'un projet QGIS simplifié embarqué dans un PDF.
-
-Les usages historiques du GeoPDF sont décrits dans la documentation DDT21 du plugin ADS.
-
-
+> [!NOTE]
+> **Fonctionnalité historique retirée : GeoPDF.** Une version antérieure du
+> plugin produisait aussi un GeoPDF (couches interactives, zoom, navigation
+> cartographique dans le lecteur PDF). Cette fonctionnalité a été retirée
+> (voir la branche archivée
+> [`archive/geopdf-export`](https://github.com/ecolabdata/secateur/tree/archive/geopdf-export))
+> et n'existe plus dans les versions actuelles du plugin. Les usages
+> historiques sont décrits dans la documentation DDT21 du plugin
+> « [Instruction_ADS](https://github.com/tomflyjc/Instruction_ADS) ».
 
 ### Gestion des légendes
 
@@ -527,6 +493,7 @@ secateur/
 ├── __init__.py
 ├── metadata.txt
 ├── plugin.py
+├── compat.py
 ├── core/
 │   ├── constants.py
 │   ├── logger.py
@@ -592,11 +559,14 @@ secateur/
 ├── ui/
 │   ├── panel.py
 │   ├── service.py
+│   ├── settings.py
 │   └── widgets/
 │       ├── basemap_combo.py
 │       └── settings_dialog.py
 ├── resources/
 ├── docs/
+├── tests/
+│   └── test_service.py
 └── vendor/
 ```
 
@@ -628,6 +598,14 @@ Le plugin suit une architecture :
 |`core/image_manager.py`|Gestion des images|
 
 [Diagramme des dépendances des modules](docs/module_dependency_graph.md)
+
+Chaque package important contient aussi un fichier `AGENT.md` détaillant
+son rôle, son API publique, ses invariants et ses pièges connus :
+[AGENT.md](AGENT.md) (racine), [core/AGENT.md](core/AGENT.md),
+[core/export/AGENT.md](core/export/AGENT.md),
+[core/export/pdf/AGENT.md](core/export/pdf/AGENT.md),
+[core/intersection/AGENT.md](core/intersection/AGENT.md),
+[core/utils/AGENT.md](core/utils/AGENT.md), [ui/AGENT.md](ui/AGENT.md).
 
 
 
@@ -675,7 +653,7 @@ sequenceDiagram
     P->>S: select() - Validate layer selection
     S->>P: Return selection result
     P->>S: run() - Execute intersection
-    S->>I: intersect_layer() - Perform GIS operations
+    S->>I: intersect_layers() - Perform GIS operations
     I->>S: Return processed layers
     S->>P: Return process result
     P->>P: Update UI state
@@ -980,8 +958,8 @@ Préférer des règles simples plutôt qu'un moteur de calcul complexe.
 - Configuration :
   - `max_legend_items_per_page: int = 20`
 - Pagination :
-  - `LegendPaginationService.paginate()`
-  - `LegendItemCounter`
+  - `LegendPaginator.paginate()`
+  - `LegendCostCalculator`
   ```
   Cost is calculated based on:
     - Title (always 1)
@@ -1011,7 +989,7 @@ Assembler les exports PDF sans utiliser Atlas QGIS.
 - Bibliothèque :
   `pypdf`
 - Fonction :
-  `merge_pdfs()`
+  `PdfMerger.merge()`
 - API :
   - `PdfWriter`
   - `append()`
@@ -1103,6 +1081,51 @@ uv run pyright
 
 
 
+# Tests
+
+La suite de tests s'exécute avec [pytest](https://pytest.org) et
+[pytest-qgis](https://github.com/GispoCoding/pytest-qgis), qui pilote une
+vraie installation QGIS (≥ 3.34) plutôt que des mocks : les tests
+créent de vraies couches en mémoire, exécutent la vraie intersection
+spatiale (`native:extractbylocation`, etc.) et produisent de vrais
+fichiers CSV/PDF dans un répertoire temporaire.
+
+## Mise en place (une fois)
+
+`qgis`/`qgis.PyQt` ne s'installent pas via pip : ils viennent de
+l'installation QGIS elle-même. Le venv doit donc être créé avec accès aux
+paquets système, en utilisant **le même interpréteur Python que QGIS** :
+
+```bash
+uv venv --system-site-packages
+uv sync
+```
+
+Sur Windows, voir [qgis-venv-creator](https://github.com/GispoCoding/qgis-venv-creator)
+pour relier correctement le venv à l'environnement Python de QGIS.
+
+## Exécution
+
+```bash
+uv run pytest
+```
+
+Détail de ce que couvre chaque fichier de test : [tests/README.md](tests/README.md).
+
+> [!NOTE]
+> `tests/test_compat.py` ne peut vérifier que la branche Qt5 de
+> `compat.py` sur un poste QGIS 3.34 — la branche Qt6/QGIS4 est marquée
+> `skip` (pas silencieusement ignorée) faute d'installation QGIS 4 pour la
+> vérifier réellement.
+>
+> `ui/panel.py` et `ui/widgets/` (interactions widgets/dialogues) ne sont
+> pas encore couverts par cette suite — voir
+> [core/AGENT.md](core/AGENT.md) et [ui/AGENT.md](ui/AGENT.md) pour l'état
+> de la couverture par module. Testez manuellement dans QGIS avant de
+> merger un changement touchant à ces fichiers.
+
+
+
 # Packaging
 
 ## Génération ZIP
@@ -1110,6 +1133,26 @@ uv run pyright
 ```bash
 zip -r secateur.zip secateur -x "*/.*" "*/docs/*"
 ```
+
+> [!NOTE]
+> Cette commande n'exclut pas `tests/`, `stubs/`, `uv.lock`,
+> `pyproject.toml` ni `.pre-commit-config.yaml`, qui n'ont pas leur place
+> dans le ZIP livré à un utilisateur final. À affiner si un processus de
+> release plus strict est mis en place.
+
+
+
+# Contribuer
+
+- Ouvrir une issue ou discuter du changement avant une PR conséquente.
+- Installer les hooks avant de committer : `uv run pre-commit install`
+  (ruff + pyright tournent automatiquement).
+- Garder les commits/PR petits et ciblés ; expliquer le "pourquoi" dans le
+  message de commit plutôt que reformuler le diff.
+- Chaque package important (`core/`, `core/export/pdf/`, `ui/`, etc.)
+  contient un fichier `AGENT.md` avec son contexte technique (API
+  publique, invariants, pièges connus) — le consulter avant de modifier un
+  module, et le mettre à jour si le comportement documenté change.
 
 </details><br>
 
@@ -1147,7 +1190,7 @@ Vérifier :
 
 
 
-### Le GeoPDF ne fonctionne pas correctement
+### L'export PDF échoue ou QGIS crash pendant l'export
 
 Certaines couches peuvent :
 
@@ -1155,17 +1198,16 @@ Certaines couches peuvent :
 - avoir trop de sommets ;
 - provoquer des crashs QGIS.
 
-Dans ce cas :
+Le plugin tente automatiquement une correction (`native:fixgeometries`) en
+cas d'échec de l'intersection sur une couche. Si le problème persiste :
 
-1. exécuter :
+1. exécuter manuellement :
 
 ```text
 Corriger les géométries
 ```
 
 2. éventuellement simplifier les géométries.
-
-Les problématiques historiques de génération GeoPDF sont documentées dans la documentation de « [Instruction_ADS](https://github.com/tomflyjc/Instruction_ADS) » de la DDT21.
 
 
 

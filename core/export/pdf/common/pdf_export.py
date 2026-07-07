@@ -44,7 +44,7 @@ def export_layout_to_pdf(
         raise ValueError(f"Invalid output file extension: {output_path.suffix}")
 
     # Write permission test (basic check)
-    test_file = output_path.parent / ".__kilo_write_test"
+    test_file = output_path.parent / ".secateur_write_test"
     try:
         with open(test_file, "w") as f:
             f.write("test")

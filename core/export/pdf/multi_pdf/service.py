@@ -65,8 +65,10 @@ class MultiPagePdfExportService(BasePdfExportService):
 
     @property
     def output_path(self) -> Path:
-        return Path(self.config.options.output_path)
+        """Path where the merged multi-page PDF will be written."""
+        return self.config.options.output_path
 
     @property
     def export_options(self) -> PdfExportOptions:
+        """Export options (dpi, page size, ...) shared by all report pages."""
         return self.config.options

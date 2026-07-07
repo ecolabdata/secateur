@@ -11,15 +11,19 @@ def apply_layer_presentation(
     result_layer: QgsMapLayer,
     original_layer: QgsMapLayer,
 ) -> None:
-    """
-    Applique le rendu et nommage du résultat.
-    """
+    """Apply the rendering and naming of the result layer."""
     result_layer.setName(original_layer.name())
     if isinstance(result_layer, QgsVectorLayer) and isinstance(original_layer, QgsVectorLayer):
         result_layer.setRenderer(original_layer.renderer().clone())
 
 
 def add_results_to_project(result_layers: list[QgsMapLayer]):
+    """Add *result_layers* to the project, grouped under the results group.
+
+    Args:
+        result_layers: Layers to add, without rendering them (they are
+            added hidden; visibility is handled separately).
+    """
     project = QgsProject.instance()
     if project is None:
         return

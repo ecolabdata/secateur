@@ -16,6 +16,16 @@ def set_layer_visible(
     layer: QgsMapLayer,
     visible: bool,
 ) -> bool:
+    """Set *layer*'s visibility checkbox under *root*.
+
+    Args:
+        root: Layer tree group to search under.
+        layer: Layer whose visibility is changed.
+        visible: Whether the layer should be checked visible.
+
+    Returns:
+        ``True`` if the layer was found and updated, ``False`` otherwise.
+    """
     if tree_layer := find_tree_layer(root, layer):
         tree_layer.setItemVisibilityChecked(visible)
         return True
